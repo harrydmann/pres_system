@@ -137,6 +137,15 @@ drawn with a `repeating-linear-gradient` of `--baseline`.
   the rest in the edge track, and the overlay ends up one column out.
 - Tests check that slot edges match overlay column edges to within 1px at 1440px and 390px.
 
+## Brand tokens (Deloitte, first pass)
+
+Unofficial: nothing authoritative is published, so verify these on the internal brand site.
+- **Open Sans** for everything. Headlines use Light (`--weight-display: 300`), as deloitte.com does. Fallbacks: Aptos, Helvetica, Arial.
+  Loaded as a Google Fonts variable font (300–800, `display=swap`). For work, consider self-hosting the file.
+  The centring JS re-runs on `document.fonts.ready`, so the swap doesn't knock text off the grid (re-tested: within 0.17px).
+- **Colour:** white/black, neutral greys (muted `#5e5e5e` on white, `#a6a6a6` on black), and accent `#86bc24`.
+  The green is about 2:1 on white, so it goes on **marks only** (progress bar, overlay, borders), never on text.
+
 ## Keyboard rules (all needed; each was a bug)
 
 - Ignore when `metaKey/ctrlKey/altKey` is held.

@@ -41,16 +41,21 @@
 
   --chrome-h: calc(var(--baseline) * 2);
 
-  /* Colour — deliberately neutral; swap later */
-  --bg: #f6f3ee;
-  --fg: #141311;
-  --muted: #6b665d;
-  --rule: #d8d2c7;
-  --accent: #1b4dff;
-  --placeholder: #e5dfd4;
+  /* Colour — aligned loosely to Deloitte (black/white + green). Unofficial
+     values; verify against the internal brand site.
+     The green is ~2:1 on white: use it for marks (bars, rules, borders),
+     never for text. */
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: #5e5e5e;        /* 6.5:1 on white */
+  --rule: #d0d0d0;
+  --accent: #86bc24;       /* Deloitte green (commonly cited) */
+  --placeholder: #eeeeee;
 
-  --font-display: Georgia, "Times New Roman", serif;
-  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Open Sans throughout; headlines in Light (300), per deloitte.com */
+  --font-display: "Open Sans", Aptos, Helvetica, Arial, sans-serif;
+  --font-text: "Open Sans", Aptos, Helvetica, Arial, sans-serif;
+  --weight-display: 300;
 }
 
 /* The one "wide" breakpoint: spreads appear, grid goes to 12 columns.
@@ -61,12 +66,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #15140f;
-    --fg: #f3efe7;
-    --muted: #a39d92;
-    --rule: #2d2b25;
-    --accent: #7c9cff;
-    --placeholder: #26241e;
+    --bg: #000000;
+    --fg: #ffffff;
+    --muted: #a6a6a6;      /* 8.5:1 on black */
+    --rule: #2e2e2e;
+    --placeholder: #1a1a1a;
   }
 }
 
@@ -146,7 +150,7 @@ kbd {
   padding: 0.2em 0.9em; cursor: pointer;
 }
 .chrome__button:hover { color: var(--fg); border-color: var(--fg); }
-.chrome__button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.chrome__button[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
 
 .chrome--bottom { bottom: 0; }
 .progress { height: 3px; background: var(--rule); }
@@ -227,7 +231,7 @@ html { scroll-snap-type: y mandatory; }
 }
 .slot-heading {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: var(--weight-display);
   --lines: 2; --leading: 1.3;
   letter-spacing: -0.01em;
   text-wrap: balance;
