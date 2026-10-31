@@ -8,6 +8,8 @@
   const sectionEl = document.querySelector('[data-current-section]');
   const progressEl = document.querySelector('[data-progress]');
   const presentBtn = document.querySelector('[data-present-toggle]');
+  const gridBtn = document.querySelector('[data-grid-toggle]');
+  const gridOverlay = document.querySelector('[data-grid-overlay]');
 
   let active = 0;
 
@@ -81,6 +83,7 @@
       case 'Home': e.preventDefault(); go(0); break;
       case 'End':  e.preventDefault(); go(scenes.length - 1); break;
       case 'f': case 'F': togglePresent(); break;
+      case 'g': case 'G': toggleGrid(); break;
       case 'Escape': if (document.body.classList.contains('is-presenting')) togglePresent(); break;
     }
   });
@@ -126,6 +129,23 @@
     }
   });
   presentBtn.addEventListener('click', togglePresent);
+
+  // ---------- Grid overlay (design aid) ----------
+  // 12 columns; CSS hides the extras on the narrow grid. Remembered per
+  // browser so it survives reloads while designing.
+  // Each column is pinned to its own line; auto-placement would start in the edge track.
+  gridOverlay.append(...Array.from({ length: 12 }, (_, i) => {
+    const col = document.createElement('span');
+    col.style.gridColumn = `col ${i + 1}`;
+    return col;
+  }));
+  function toggleGrid(on = gridOverlay.hidden) {
+    gridOverlay.hidden = !on;
+    gridBtn.setAttribute('aria-pressed', String(on));
+    try { localStorage.setItem('deck:grid', on ? '1' : ''); } catch {}
+  }
+  gridBtn.addEventListener('click', () => toggleGrid());
+  try { if (localStorage.getItem('deck:grid')) toggleGrid(true); } catch {}
 
   // ---------- Boot ----------
   // Browser scroll restoration fights snap + hash; do it ourselves.

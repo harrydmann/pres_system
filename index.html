@@ -12,8 +12,12 @@
   <header class="chrome chrome--top">
     <span class="chrome__title" data-deck-title>Web deck</span>
     <span class="chrome__section" data-current-section></span>
-    <button class="chrome__present" data-present-toggle type="button" aria-label="Toggle presenting mode">Present</button>
+    <button class="chrome__button" data-grid-toggle type="button" aria-pressed="false" aria-label="Toggle grid overlay">Grid</button>
+    <button class="chrome__button" data-present-toggle type="button" aria-label="Toggle presenting mode">Present</button>
   </header>
+
+  <!-- Design aid: shows the column grid and baseline rhythm (G) -->
+  <div class="grid-overlay" data-grid-overlay aria-hidden="true" hidden></div>
 
   <div class="chrome chrome--bottom" aria-hidden="true">
     <div class="progress"><div class="progress__bar" data-progress></div></div>

@@ -73,6 +73,43 @@ await page.setViewport({ width: 1440, height: 900 });
 await page.goto(PAGE + '#/2'); await wait(400);
 check('numeric hash', (await state()).hash === '#/scenes', await state());
 
+// Grid overlay
+await page.setViewport({ width: 1440, height: 900 });
+await page.evaluate(() => localStorage.clear());
+await page.goto(PAGE + '#/scenes'); await wait(400);
+const overlayState = () => page.evaluate(() => ({
+  hidden: document.querySelector('[data-grid-overlay]').hidden,
+  pressed: document.querySelector('[data-grid-toggle]').getAttribute('aria-pressed'),
+  cols: [...document.querySelectorAll('[data-grid-overlay] span')].filter(s => s.offsetWidth).length,
+}));
+check('grid hidden by default', (await overlayState()).hidden === true, await overlayState());
+await page.click('[data-grid-toggle]'); await wait(100);
+check('grid button shows 12 cols', (await overlayState()).hidden === false && (await overlayState()).cols === 12 && (await overlayState()).pressed === 'true', await overlayState());
+await page.reload(); await wait(400);
+check('grid persists across reload', (await overlayState()).hidden === false, await overlayState());
+// Slot edges sit on overlay column edges
+const edges = await page.evaluate(() => {
+  const cols = [...document.querySelectorAll('[data-grid-overlay] span')].map(s => s.getBoundingClientRect());
+  const r = (sel) => document.querySelector(sel).getBoundingClientRect();
+  const t = r('#scenes .slot-text'), m = r('#scenes .slot-media'), ft = r('#chrome .slot-text'), fm = r('#chrome .slot-media');
+  const d = (a, b) => Math.round(Math.abs(a - b));
+  return { textL: d(t.left, cols[0].left), textR: d(t.right, cols[3].right), mediaL: d(m.left, cols[5].left), mediaR: d(m.right, cols[11].right),
+           flipMediaL: d(fm.left, cols[0].left), flipMediaR: d(fm.right, cols[6].right), flipTextL: d(ft.left, cols[8].left) };
+});
+check('slots align to overlay columns (px off)', Object.values(edges).every(v => v <= 1), edges);
+await page.keyboard.press('g'); await wait(100);
+check('G key hides grid', (await overlayState()).hidden === true, await overlayState());
+await page.setViewport({ width: 390, height: 844, isMobile: true });
+await page.keyboard.press('g'); await wait(200);
+check('phone shows 4 cols', (await overlayState()).cols === 4, await overlayState());
+const phoneEdges = await page.evaluate(() => {
+  const cols = [...document.querySelectorAll('[data-grid-overlay] span')].map(s => s.getBoundingClientRect());
+  const t = document.querySelector('#scenes .slot-text').getBoundingClientRect();
+  return { L: Math.round(t.left - cols[0].left), R: Math.round(t.right - cols[3].right) };
+});
+check('phone slots span the 4 cols', Math.abs(phoneEdges.L) <= 1 && Math.abs(phoneEdges.R) <= 1, phoneEdges);
+await page.evaluate(() => localStorage.clear());
+
 console.log(results.join('\n'));
 
 // Screenshots

@@ -1,6 +1,7 @@
 /* =========================================================
-   Web deck — Phase 1
-   One fluid type scale, one grid, a small set of scene layouts.
+   Web deck
+   One fluid type scale, one column grid, one vertical rhythm,
+   a small set of scene layouts.
    ========================================================= */
 
 /* ---------- Tokens ---------- */
@@ -14,20 +15,36 @@
   --step-2:  clamp(1.875rem, 1.4rem + 2vw, 3.5rem);         /* heading */
   --step-3:  clamp(2.5rem, 1.6rem + 4vw, 6rem);             /* display */
 
-  /* Fluid space scale, same idea */
-  --space-xs: clamp(0.5rem, 0.4rem + 0.4vw, 0.875rem);
-  --space-s:  clamp(0.75rem, 0.6rem + 0.7vw, 1.5rem);
-  --space-m:  clamp(1.25rem, 0.9rem + 1.5vw, 3rem);
-  --space-l:  clamp(2rem, 1.2rem + 3.5vw, 6rem);
-  --space-xl: clamp(3rem, 1.5rem + 6vw, 10rem);
+  /* Vertical rhythm. The baseline is one line of body text; the rhythm
+     unit is a quarter of it. All vertical space is a multiple of --rhythm,
+     and every line-height rounds up to it (see Base), so blocks stack on
+     the grid. Half-baseline was tried: too coarse — a 50px heading's
+     leading jumped from 1.1 to 1.34. */
+  --baseline: calc(var(--step-0) * 1.5);
+  --rhythm: calc(var(--baseline) / 4);
 
-  /* Gutter: the inset every scene respects */
+  --space-xs: calc(var(--rhythm) * 2);
+  --space-s:  calc(var(--rhythm) * 4);
+  --space-m:  calc(var(--rhythm) * 6);
+  --space-l:  calc(var(--rhythm) * 12);
+  --space-xl: calc(var(--rhythm) * 20);
+
+  /* Column grid. Defined once here and used by every scene and the
+     overlay. Named lines: `full` is edge to edge, `content` is inside the
+     gutters, `col N` is the start of column N. */
+  --cols: 4;
   --gutter: clamp(1.25rem, 4vw, 5rem);
+  --col-gap: clamp(0.75rem, 0.5rem + 1vw, 2rem);
+  --edge: max(0px, calc(var(--gutter) - var(--col-gap)));
+  --grid:
+    [full-start] var(--edge)
+    [content-start] repeat(var(--cols), [col] minmax(0, 1fr))
+    [content-end] var(--edge) [full-end];
 
-  /* Measure: max comfortable line length for body copy */
+  /* Max comfortable line length for body copy */
   --measure: 36em;
 
-  --chrome-h: 3rem;
+  --chrome-h: calc(var(--baseline) * 2);
 
   /* Colour — deliberately neutral; swap later */
   --bg: #f6f3ee;
@@ -39,6 +56,12 @@
 
   --font-display: Georgia, "Times New Roman", serif;
   --font-text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* The one "wide" breakpoint: spreads appear, grid goes to 12 columns.
+   Repeated verbatim wherever needed (no custom media without a build). */
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  :root { --cols: 12; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,8 +87,15 @@ body {
   color: var(--fg);
   font-family: var(--font-text);
   font-size: var(--step-0);
-  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Leading: each element sets a ratio (--leading); the line-height is that
+   ratio rounded up to the rhythm. Applied per element because an inherited
+   absolute line-height would ignore the child's own font size.
+   Body text (1.5 × step-0) lands exactly on the baseline. */
+:where(body, body *) {
+  line-height: round(up, calc(var(--leading, 1.5) * 1em), var(--rhythm));
 }
 
 h1, h2, h3, p, ol, ul, figure { margin: 0; }
@@ -92,19 +122,23 @@ kbd {
   padding-top: env(safe-area-inset-top);
   display: flex; align-items: center; gap: var(--space-s);
   font-size: var(--step--1);
+  --leading: 1.35;
   color: var(--muted);
 }
 .chrome__title { font-weight: 600; color: var(--fg); }
 .chrome__section { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chrome__section::before { content: "— "; }
 .chrome__section:empty { display: none; }
+/* Keep buttons right-aligned even when the section label is hidden */
+.chrome__button:first-of-type { margin-left: auto; }
 
-.chrome__present {
+.chrome__button {
   font: inherit; color: var(--muted);
   background: none; border: 1px solid var(--rule); border-radius: 999px;
   padding: 0.2em 0.9em; cursor: pointer;
 }
-.chrome__present:hover { color: var(--fg); border-color: var(--fg); }
+.chrome__button:hover { color: var(--fg); border-color: var(--fg); }
+.chrome__button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 
 .chrome--bottom { bottom: 0; }
 .progress { height: 3px; background: var(--rule); }
@@ -119,23 +153,47 @@ body.is-presenting .chrome--top { opacity: 0; transition: opacity 300ms; }
 body.is-presenting .chrome--top:hover { opacity: 1; }
 body.is-presenting.is-idle { cursor: none; }
 
-/* ---------- Deck + scenes ---------- */
-.deck {
-  /* The body scrolls; snapping is set on the scroll container, which is
-     the root. Using the root keeps native mobile behaviour (address bar
-     collapse, overscroll) intact. */
+/* ---------- Grid overlay (design aid) ----------
+   Same template as the scenes, so the columns line up by construction.
+   Horizontal lines mark every baseline, from the viewport top — which is
+   also every snapped scene's top. */
+.grid-overlay {
+  position: fixed; inset: 0; z-index: 5;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: var(--grid);
+  column-gap: var(--col-gap);
+  --grid-col: color-mix(in srgb, var(--accent) 9%, transparent);
+  --grid-line: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: repeating-linear-gradient(to bottom,
+    transparent 0 calc(var(--baseline) - 1px),
+    var(--grid-line) calc(var(--baseline) - 1px) var(--baseline));
 }
+.grid-overlay[hidden] { display: none; }
+.grid-overlay > span { grid-row: 1; background: var(--grid-col); }
+.grid-overlay > span:nth-child(n + 5) { display: none; }
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  .grid-overlay > span:nth-child(n + 5) { display: block; }
+}
+
+/* ---------- Deck + scenes ---------- */
+/* The root is the scroll container. Using the root keeps native mobile
+   behaviour (address bar collapse, overscroll) intact. */
 html { scroll-snap-type: y mandatory; }
 
 .scene {
   min-height: 100dvh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  padding: calc(var(--chrome-h) + var(--space-m)) var(--gutter) var(--space-l);
+  padding-block: calc(var(--chrome-h) + var(--space-m)) var(--space-l);
   display: grid;
+  grid-template-columns: var(--grid);
+  column-gap: var(--col-gap);
+  row-gap: var(--space-m);
   align-content: center;
-  gap: var(--space-m);
 }
+/* By default every slot spans the content area; layouts narrow it. */
+.scene > * { grid-column: content; }
 
 /* A scene taller than the viewport. It keeps its snap point: under
    `mandatory`, a scene with no snap point gets skipped entirely, whereas
@@ -145,6 +203,36 @@ html { scroll-snap-type: y mandatory; }
   min-height: auto;
   scroll-snap-stop: normal;
   align-content: start;
+}
+
+/* ---------- Slots (shared vocabulary) ---------- */
+.slot-eyebrow {
+  font-size: var(--step--1);
+  --leading: 1.35;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.slot-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-2);
+  --leading: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.slot-body {
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+.slot-caption {
+  font-size: var(--step--1);
+  --leading: 1.35;
+  color: var(--muted);
+}
+.slot-list {
+  padding-left: 1.2em;
+  display: grid; gap: var(--space-xs);
+  max-width: var(--measure);
 }
 
 /* Media: declares aspect ratio (--ratio) and focal point (--focus);
@@ -157,34 +245,6 @@ html { scroll-snap-type: y mandatory; }
   border-radius: 0.5rem;
 }
 
-/* ---------- Slots (shared vocabulary) ---------- */
-.slot-eyebrow {
-  font-size: var(--step--1);
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--muted);
-}
-.slot-heading {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: var(--step-2);
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-}
-.slot-body {
-  max-width: var(--measure);
-  text-wrap: pretty;
-}
-.slot-caption {
-  font-size: var(--step--1);
-  color: var(--muted);
-}
-.slot-list {
-  padding-left: 1.2em;
-  display: grid; gap: var(--space-s);
-  max-width: var(--measure);
-}
-
 /* Media placeholder: declares an aspect ratio, layout decides footprint */
 .media-placeholder {
   aspect-ratio: var(--ratio, 16 / 9);
@@ -194,77 +254,64 @@ html { scroll-snap-type: y mandatory; }
   display: grid; place-items: center;
   color: var(--muted); font-size: var(--step--1);
 }
-figcaption { margin-top: var(--space-xs); font-size: var(--step--1); color: var(--muted); }
+figcaption { margin-top: var(--space-xs); font-size: var(--step--1); --leading: 1.35; color: var(--muted); }
 
 /* ---------- Layouts ----------
-   Each layout defines its narrow arrangement by default and adds
-   designed arrangements at wider sizes. No free positioning. */
+   Narrow (4 columns): every slot spans the content area, in source order
+   unless noted. Wide (12 columns): slots are placed on shared column
+   lines, so every internal edge in the deck is one of the same 11 lines.
+   No free positioning. */
 
 /* title: eyebrow / display heading / body, left-aligned, generous */
-.scene[data-layout="title"] {
-  gap: var(--space-s);
-}
-.scene[data-layout="title"] .slot-heading {
-  font-size: var(--step-3);
-  max-width: 14ch;
-}
-.scene[data-layout="title"] .slot-body { margin-top: var(--space-s); }
+.scene[data-layout="title"] { row-gap: var(--space-s); }
+.scene[data-layout="title"] .slot-heading { font-size: var(--step-3); }
 
 /* statement: a single large line of text, centred vertically */
-.scene[data-layout="statement"] .slot-heading {
-  font-size: var(--step-3);
-  max-width: 18ch;
-}
+.scene[data-layout="statement"] .slot-heading { font-size: var(--step-3); }
 
-/* text-media: stacks on narrow; two columns from medium up */
-.scene[data-layout="text-media"] {
-  grid-template-areas: "media" "text";
-  align-items: center;
-}
-.scene[data-layout="text-media"] .slot-text  { grid-area: text; display: grid; gap: var(--space-s); }
-.scene[data-layout="text-media"] .slot-media { grid-area: media; }
+/* text-media: media above text on narrow; side by side on wide */
+.scene[data-layout="text-media"] { align-items: center; }
+.scene[data-layout="text-media"] .slot-text  { display: grid; gap: var(--space-s); }
+.scene[data-layout="text-media"] .slot-media { order: -1; }
 
-@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
-  .scene[data-layout="text-media"] {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    grid-template-areas: "text media";
-    column-gap: var(--space-l);
-  }
-  .scene[data-layout="text-media"][data-flip] {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-    grid-template-areas: "media text";
-  }
-}
+/* sequence: heading above a numbered list; side by side on wide */
+.scene[data-layout="sequence"] { align-items: start; }
 
-/* media-full: media bleeds to the edges; caption overlays the bottom */
-.scene[data-layout="media-full"] {
-  padding: 0;
-  grid-template-areas: "stack";
-}
-.scene[data-layout="media-full"] > * { grid-area: stack; }
+/* media-full: media bleeds edge to edge; caption overlays the bottom */
+.scene[data-layout="media-full"] { padding-block: 0; }
+.scene[data-layout="media-full"] > * { grid-row: 1; }
+.scene[data-layout="media-full"] .slot-media { grid-column: full; }
 .media-placeholder--full,
 .scene[data-layout="media-full"] .media {
   aspect-ratio: auto; height: 100dvh; border-radius: 0;
 }
 .scene[data-layout="media-full"] .slot-caption {
+  grid-column: full;
   align-self: end;
+  /* full-width gradient, but text starts on the content line */
   padding: var(--space-m) var(--gutter) calc(var(--space-m) + 3px);
   background: linear-gradient(to top, var(--bg), transparent);
   color: var(--fg);
 }
 
-/* sequence: heading above a numbered list; side-by-side when wide */
-@media (min-width: 64rem) {
-  .scene[data-layout="sequence"] {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    column-gap: var(--space-l);
-    align-items: start;
-  }
-  .scene[data-layout="sequence"] .slot-list { margin-top: 0.4em; }
-}
-
 /* end: centred, quiet */
-.scene[data-layout="end"] {
-  justify-items: center; text-align: center;
-}
+.scene[data-layout="end"] { justify-items: center; text-align: center; }
 .scene[data-layout="end"] .slot-heading { font-size: var(--step-3); }
+
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  .scene[data-layout="title"] .slot-heading,
+  .scene[data-layout="statement"] .slot-heading { grid-column: col 1 / span 8; }
+  .scene[data-layout="title"] .slot-body        { grid-column: col 1 / span 6; }
+
+  /* text 4 cols | 1 empty | media 7 cols */
+  .scene[data-layout="text-media"] > *          { grid-row: 1; }
+  .scene[data-layout="text-media"] .slot-text   { grid-column: col 1 / span 4; }
+  .scene[data-layout="text-media"] .slot-media  { grid-column: col 6 / content-end; }
+  /* flipped: media 7 cols | 1 empty | text 4 cols */
+  .scene[data-layout="text-media"][data-flip] .slot-media { grid-column: col 1 / span 7; }
+  .scene[data-layout="text-media"][data-flip] .slot-text  { grid-column: col 9 / content-end; }
+
+  .scene[data-layout="sequence"] > *            { grid-row: 1; }
+  .scene[data-layout="sequence"] .slot-heading  { grid-column: col 1 / span 4; }
+  .scene[data-layout="sequence"] .slot-list     { grid-column: col 6 / content-end; }
+}
