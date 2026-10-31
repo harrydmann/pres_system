@@ -154,9 +154,13 @@ kbd {
   transition: width 200ms ease-out;
 }
 
-/* Presenting mode: hide chrome text, keep progress; hide cursor when idle */
-body.is-presenting .chrome--top { opacity: 0; transition: opacity 300ms; }
-body.is-presenting .chrome--top:hover { opacity: 1; }
+/* Presenting mode: chrome text and progress stay; hide cursor when idle */
+/* Title and section stay. Buttons fade with the cursor once the mouse is idle,
+   and come back on movement, hover or keyboard focus. */
+.chrome__button { transition: opacity 300ms; }
+body.is-presenting.is-idle .chrome__button { opacity: 0; }
+body.is-presenting.is-idle .chrome--top:hover .chrome__button,
+body.is-presenting .chrome__button:focus-visible { opacity: 1; }
 body.is-presenting.is-idle { cursor: none; }
 
 /* ---------- Grid overlay (design aid) ----------
