@@ -194,7 +194,7 @@ histories will diverge). Keep work-only things (official tokens, logo, deck cont
 Record the last synced commit in the work repo, e.g. a line `synced-from: <sha>` in its notes file.
 
 **First build** (work machine agent):
-> Clone https://github.com/<user>/<repo> into a scratch folder. Read REBUILD.md and build from it, using the
+> Clone https://github.com/harrydmann/pres_system into a scratch folder. Read REBUILD.md and build from it, using the
 > reference files only where the spec is unclear. Use our own brand.css and logo. Record the HEAD commit as `synced-from`.
 
 **Later updates:**
