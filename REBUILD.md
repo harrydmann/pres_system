@@ -146,6 +146,7 @@ Unofficial: nothing authoritative is published, so verify these on the internal 
   The centring JS re-runs on `document.fonts.ready`, so the swap doesn't knock text off the grid (re-tested: within 0.17px).
 - **Colour:** white/black, neutral greys (muted `#5e5e5e` on white, `#a6a6a6` on black), and accent `#86bc24`.
   The green is about 2:1 on white, so it goes on **marks only** (progress bar, overlay, borders), never on text.
+- **Logo mark:** fixed bottom-right in `.chrome--bottom` as `<picture class="brand-mark"><img src="media/brand-mark.svg" alt=""></picture>`; 1 baseline square, `right: var(--gutter); bottom: var(--baseline)`, so it sits in the scene's 3-baseline bottom padding, clear of content and the media-full caption, and stays visible while presenting. The exploration repo uses a placeholder: get the official "D." mark (and its reversed/dark version, clear-space and minimum-size rules) from the internal brand portal. Logo-aggregator sites are unofficial and often not licensed for commercial use. Add the dark version as `<source media="(prefers-color-scheme: dark)">`.
 
 ## Keyboard rules (all needed; each was a bug)
 
