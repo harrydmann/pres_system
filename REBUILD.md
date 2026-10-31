@@ -116,6 +116,10 @@ The space scale is in rhythm units (xs 2, s 4, m 6, l 12, xl 20). Every element'
 - ✗ **A half-baseline rhythm is too coarse.** A 50px heading's leading jumped from 1.1 to 1.34. A quarter works:
   heading/display measure 1.14/1.21 on phone, 1.14/1.13 on laptop, 1.19/1.13 on TV. Body is exactly 1.5.
   Captions land at 1.41–1.59: small text against this rhythm is coarse. That's accepted, since captions are mostly one line.
+- **Scene padding is whole baselines** (top = chrome 2 + 2 clear = 4; bottom = 3), so top-aligned content starts
+  on the grid (measured 4.00 at 390/1440). Previously chrome + space-m = 3.5 put everything half a line off.
+- **Inside a scene, phase drifts after the first block.** Gaps (space-m = 1.5 baselines) and heading heights (quarter-baseline
+  multiples) aren't whole baselines, so on phone the tall scene's list starts at 8.50.
 - **Limitation: vertical centring breaks baseline *phase*.** `align-content: center` shifts content by an arbitrary
   amount, so lines are evenly spaced but sit between the overlay's baselines. CSS can't round that offset.
   Accepted: consistent spacing is the realistic goal, not true baseline alignment.

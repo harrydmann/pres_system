@@ -195,7 +195,9 @@ html { scroll-snap-type: y mandatory; }
   min-height: 100dvh;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  padding-block: calc(var(--chrome-h) + var(--space-m)) var(--space-l);
+  /* Both paddings are whole baselines, so top-aligned content starts on
+     the grid: top = chrome (2) + 2 lines clear; bottom = space-l (3). */
+  padding-block: calc(var(--chrome-h) + var(--baseline) * 2) var(--space-l);
   display: grid;
   grid-template-columns: var(--grid);
   column-gap: var(--col-gap);
