@@ -105,7 +105,8 @@
   let idleTimer;
   function togglePresent() {
     const on = document.body.classList.toggle('is-presenting');
-    presentBtn.textContent = on ? 'Exit' : 'Present';
+    presentBtn.setAttribute('aria-pressed', String(on));
+    presentBtn.title = on ? 'Exit (Esc)' : 'Present (F)';
     if (on) {
       document.documentElement.requestFullscreen?.().catch(() => {});
       armIdle();

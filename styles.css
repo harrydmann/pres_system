@@ -144,13 +144,24 @@ kbd {
 /* Keep buttons right-aligned even when the section label is hidden */
 .chrome__button:first-of-type { margin-left: auto; }
 
+/* Icon buttons: a circle 1.5 baselines across, centred in the 2-baseline chrome */
 .chrome__button {
-  font: inherit; color: var(--muted);
-  background: none; border: 1px solid var(--rule); border-radius: 999px;
-  padding: 0.2em 0.9em; cursor: pointer;
+  display: grid; place-items: center;
+  width: calc(var(--baseline) * 1.5); aspect-ratio: 1; padding: 0;
+  color: var(--muted);
+  background: none; border: 1px solid var(--rule); border-radius: 50%;
+  cursor: pointer;
 }
 .chrome__button:hover { color: var(--fg); border-color: var(--fg); }
 .chrome__button[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
+.icon {
+  width: 55%; height: 55%;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+/* Two-state buttons carry both icons; aria-pressed picks one */
+.chrome__button[aria-pressed="true"] .icon--off,
+.chrome__button:not([aria-pressed="true"]) .icon--on { display: none; }
 
 .chrome--bottom { bottom: 0; }
 .progress { height: 3px; background: var(--rule); }

@@ -38,6 +38,7 @@ The document is primary and presenting is a mode. It is not a scaled fixed-stage
 | Layouts via `data-layout`, placing slots on the shared column grid (✗ per-layout `grid-template-areas`, replaced). Narrow is the default; designed arrangements are added at `(min-width:48rem) and (orientation:landscape), (min-width:64rem)` | Phone portrait always stacks. The landscape clause lets a phone held sideways get the spread. |
 | One fluid unit (`--baseline`); type and vertical space derive from it (see Type) + `--gutter` + `--measure: 36em` | See the open question on TV below. |
 | Presenting mode = body class + Fullscreen API + idle-cursor timer (2.5s); top chrome fades out and reappears on hover | Exit via Esc, `f`, button, or leaving fullscreen (listen to `fullscreenchange`). |
+| Chrome buttons are icons: Lucide SVGs pasted inline (ISC, no package), `stroke: currentColor` set in CSS | Icon-only, so each button needs `aria-label` + `title` (shortcut in the title). Two-state buttons carry both icons and `aria-pressed` picks one in CSS; JS only flips the attribute. Icons: `grid-3x3`, `presentation` / `x`. Button = circle 1.5 baselines across. |
 
 ## Type: derived from the baseline, so every glyph sits on the grid
 
@@ -130,7 +131,7 @@ The method: append a zero-size inline-block with `vertical-align: baseline` to e
   row whenever its column comes before the first one's (e.g. the flipped layout).
 - `order: -1` puts media above text on narrow screens without changing the source order.
 
-**Overlay** (`Grid` button beside `Present`; key `G`; remembered in `localStorage`): a fixed `div`
+**Overlay** (grid icon button beside Present; key `G`; remembered in `localStorage`): a fixed `div`
 with the same `--grid` template, 12 `span`s (CSS hides spans 5–12 below the breakpoint), and baselines
 drawn with a `repeating-linear-gradient` of `--baseline`.
 - **Gotcha:** pin each span with `grid-column: col N`. Pinning only the first one lets auto-placement put
