@@ -110,6 +110,29 @@ const phoneEdges = await page.evaluate(() => {
 check('phone slots span the 4 cols', Math.abs(phoneEdges.L) <= 1 && Math.abs(phoneEdges.R) <= 1, phoneEdges);
 await page.evaluate(() => localStorage.clear());
 
+// Every text block's last glyph baseline sits on a grid line (scene-relative)
+for (const [w, h] of [[390, 844], [1440, 900], [1440, 800], [1920, 1080]]) {
+  await page.setViewport({ width: w, height: h });
+  await page.goto(PAGE); await wait(300);
+  const worst = await page.evaluate(() => {
+    const B = parseFloat(getComputedStyle(document.body).lineHeight);
+    let worst = { err: 0 };
+    for (const s of document.querySelectorAll('.scene:not([data-layout="media-full"])')) {
+      const st = s.getBoundingClientRect().top;
+      for (const el of s.querySelectorAll('.slot-eyebrow, .slot-heading, .slot-body, .slot-list > li, figcaption')) {
+        const probe = document.createElement('span');
+        probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+        el.append(probe);
+        const n = (probe.getBoundingClientRect().top - st) / B; probe.remove();
+        const err = Math.abs(n - Math.round(n)) * B;
+        if (err > worst.err) worst = { err: +err.toFixed(2), scene: s.id, el: el.className || el.tagName };
+      }
+    }
+    return worst;
+  });
+  check(`${w}x${h}: glyph baselines on grid (<0.5px)`, worst.err < 0.5, worst);
+}
+
 console.log(results.join('\n'));
 
 // Screenshots

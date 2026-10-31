@@ -147,6 +147,26 @@
   gridBtn.addEventListener('click', () => toggleGrid());
   try { if (localStorage.getItem('deck:grid')) toggleGrid(true); } catch {}
 
+  // ---------- Baseline centring ----------
+  // CSS centring offsets content by (free space ÷ 2), which lands anywhere.
+  // Instead, top-align (CSS: .js-centre) and pad by the largest whole number
+  // of baselines that keeps the content centred. Body line-height = 1 baseline.
+  function centreOnBaseline() {
+    const b = parseFloat(getComputedStyle(document.body).lineHeight);
+    const fixed = b * 7; // top padding (chrome 2 + 2 clear) + bottom (3)
+    for (const s of scenes) {
+      if (s.matches('[data-tall], [data-layout="media-full"]')) continue;
+      const boxes = [...s.children].map((c) => c.getBoundingClientRect());
+      const content = Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top));
+      const free = Math.max(0, innerHeight - fixed - content);
+      s.style.setProperty('--centre', `${Math.floor(free / 2 / b) * b}px`);
+    }
+  }
+  document.documentElement.classList.add('js-centre');
+  centreOnBaseline();
+  addEventListener('resize', centreOnBaseline);
+  document.fonts?.ready.then(centreOnBaseline);
+
   // ---------- Boot ----------
   // Browser scroll restoration fights snap + hash; do it ourselves.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';

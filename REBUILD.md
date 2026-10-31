@@ -36,41 +36,70 @@ The document is primary and presenting is a mode. It is not a scaled fixed-stage
 | Hash `#/scene-id`, falling back to `#/index`; written with `history.replaceState`; read on boot and on `hashchange` | `replaceState` doesn't fire `hashchange`, so there's no loop. Set `history.scrollRestoration = 'manual'`, or the browser fights snap + hash on reload. |
 | Media: `.media { aspect-ratio: var(--ratio); object-fit: cover; object-position: var(--focus) }` | Media declares its ratio and focal point; the layout picks the footprint. Verified: a phone crops around the subject. |
 | Layouts via `data-layout`, placing slots on the shared column grid (✗ per-layout `grid-template-areas`, replaced). Narrow is the default; designed arrangements are added at `(min-width:48rem) and (orientation:landscape), (min-width:64rem)` | Phone portrait always stacks. The landscape clause lets a phone held sideways get the spread. |
-| One fluid type scale (5 steps, `clamp(rem, rem + vw, rem)`) + `--gutter` + `--measure: 36em`; spacing derives from the rhythm (see Grid and rhythm) | See the open question on TV below. |
+| One fluid unit (`--baseline`); type and vertical space derive from it (see Type) + `--gutter` + `--measure: 36em` | See the open question on TV below. |
 | Presenting mode = body class + Fullscreen API + idle-cursor timer (2.5s); top chrome fades out and reappears on hover | Exit via Esc, `f`, button, or leaving fullscreen (listen to `fullscreenchange`). |
 
-## Scale: four inputs, everything derived
+## Type: derived from the baseline, so every glyph sits on the grid
 
-| Input | 360px | 1920px |
-|---|---|---|
-| Body size | 16px | 24px |
-| Ratio | 1.25 | 1.414 (√2) |
-
-Step n = body × ratioⁿ at each end, interpolated linearly. The higher ratio at the large end makes headings
-grow faster than body. Every token shares one interpolation, so all of them reach their minimum and maximum at the same widths:
+**The model:** the baseline is the only fluid unit. A text style is a pair of numbers, **lines** (baselines per line of text) and **leading**,
+and its font size is derived from them. Line height is always a whole number of baselines, so text can't fall off the grid.
 
 ```css
---fluid: calc((100vw - 22.5rem) / 97.5);     /* 0 at 360px → 1rem at 1920px */
---step-0: clamp(1rem, 1rem + 0.5 * var(--fluid), 1.5rem);   /* clamp(MIN, MIN + Δ·fluid, MAX) */
+--fluid: calc((100vw - 22.5rem) / 97.5);                              /* 0 at 360px → 1rem at 1920px */
+--baseline: clamp(1.5rem, 1.5rem + 0.75 * var(--fluid), 2.25rem);     /* 24 → 36px */
+
+:where(body, body *) {
+  line-height: calc(var(--lines, 1) * var(--baseline));
+  font-size:   calc(var(--lines, 1) * var(--baseline) / var(--leading, 1.5));
+}
 ```
 
-| Token | 360 → 1920px | Use |
-|---|---|---|
-| step −1 | 12.8 → 17 | caption, eyebrow, chrome |
-| step 0 | 16 → 24 | body |
-| step 1 / 2 | 20 → 34 / 25 → 48 | spare |
-| step 3 | 31 → 68 | heading |
-| step 4 | 39 → 96 | display |
-| baseline (1.5 × body) | 24 → 36 | line spacing, **col-gap** |
-| rhythm (baseline ÷ 4) | 6 → 9 | all vertical spacing |
-| gutter | 24 → 96 | equals col-gap on phones, so the edge track is 0 |
+| Style | Narrow (lines @ leading) | Wide | Size: 390 / 1440 / 1920px |
+|---|---|---|---|
+| Small (caption, eyebrow, chrome) | 1 @ 1.8 | same | 13.5 / 18 / 20 |
+| Body | 1 @ 1.5 | same | 16 / 21.5 / 24 |
+| Heading | 2 @ 1.3 | 2 @ 1.15 | 37 / 56 / 63 |
+| Display (title, statement, end) | 2 @ 1.1 | 3 @ 1.15 | 44 / 84 / 94 |
 
-- Integers at both ends; every second step doubles at the top (24/48/96).
-- To regenerate with other inputs: MIN = body_min × r_minⁿ, MAX = body_max × r_maxⁿ, Δ = MAX − MIN (in rem).
-  The `--fluid` divisor is (1920 − 360) / 16 = 97.5.
-- ✗ The previous hand-picked clamps each hit their maximum at a different width, so the scale's
-  proportions drifted across sizes, and no value was a whole pixel at either end.
-- Caveat: `--fluid` assumes a 16px root. If a user changes their default size, the curve shifts a little, but the clamp still caps it.
+**Glyphs, not just line boxes, on the grid.** Where the alphabetic baseline sits inside a line box depends on the font,
+so boxes on the grid don't put glyphs on it. The fix is pure CSS, with no font metrics:
+
+```css
+@supports (text-box: trim-both cap alphabetic) {
+  :is(.slot-eyebrow, .slot-heading, .slot-body, .slot-caption, .slot-list > li, figcaption) {
+    text-box: trim-both cap alphabetic;                              /* box = cap top … last baseline */
+    padding-top: calc(round(up, 1cap, var(--baseline)) - 1cap);      /* first line → whole baselines */
+  }
+}
+```
+
+Each text block ends up a whole number of baselines tall, and its bottom edge is a baseline. Without support (Firefox),
+line boxes are still on the grid and only the glyph phase is lost.
+
+**Everything around the text is whole baselines too:**
+- Space tokens: s = 1, m = 2, l = 3, xl = 5 baselines. Scene row-gap = 1. List gap = 1.
+- Scene padding: top = chrome 2 + 2 clear (+ centring), bottom = 3.
+- **Media in a figure:** `container-type: inline-size` on the figure, then
+  `height: round(down, calc(100cqi / (var(--ratio))), var(--baseline))`. It crops a few px via `object-fit`.
+- **Spreads align to the top** (`align-items: start`). Centring two whole-baseline blocks against each other can leave a half-line offset.
+- **Vertical centring in JS** (about 15 lines): add `.js-centre` to `html`, which makes CSS `align-content: start`. Each scene then gets
+  `--centre = floor((innerHeight − 7b − contentHeight) / 2 / b) · b`, added to its top padding. Run it on load, on resize and on `document.fonts.ready`.
+  Read the baseline in px from `getComputedStyle(body).lineHeight`. Tall and media-full scenes are skipped.
+
+**Measured:** every block's last glyph baseline is within 0.19px of a grid line, on every scene, at 390×844, 1440×900, 1440×800 and 1920×1080.
+The method: append a zero-size inline-block with `vertical-align: baseline` to each text block and read its top.
+
+**Trade-offs accepted:**
+- Type scales in proportion to the baseline (×1.5 from phone to TV). Headings can't grow faster than body *within* a range;
+  that happens only at the breakpoint, by changing lines and leading. ✗ The earlier Utopia-style dual-ratio scale
+  (1.25 → √2) gave headings faster growth but couldn't sit on a grid: heading ÷ baseline ran from 1.3 to 1.9.
+- Small text gets loose leading (1.8). It's fine for one-line captions and airy when they wrap.
+- Side-by-side columns land on the same grid, but their first baselines can be a line apart (heading vs list in `sequence`).
+
+**Approaches tried and dropped:**
+- ✗ Font sizes first, line-height `round(up, …, rhythm)` with a quarter-baseline rhythm. Leading was fine,
+  but heading lines fell between grid lines. With half-baseline the leading was too coarse (1.1 → 1.34). Rounding up also needed a −0.5px float fudge.
+- ✗ CSS `align-content: center`: offset = free space ÷ 2, which lands anywhere. Measured 17.31 baselines on one scene.
 
 ## Grid and rhythm
 
@@ -100,29 +129,6 @@ grow faster than body. Every token shares one interpolation, so all of them reac
 - **Gotcha: side-by-side slots need `grid-row: 1`.** Otherwise auto-placement drops the second slot to a new
   row whenever its column comes before the first one's (e.g. the flipped layout).
 - `order: -1` puts media above text on narrow screens without changing the source order.
-
-**Rhythm:** `--baseline: calc(var(--step-0) * 1.5)` (one body line); `--rhythm: calc(var(--baseline) / 4)`.
-The space scale is in rhythm units (xs 2, s 4, m 6, l 12, xl 20). Every element's line-height rounds up to the rhythm:
-
-```css
-:where(body, body *) { line-height: round(up, calc(var(--leading, 1.5) * 1em), var(--rhythm)); }
-.slot-heading { --leading: 1.1; }   .slot-caption, figcaption, .slot-eyebrow { --leading: 1.35; }
-```
-
-- **Subtract 0.5px before rounding up** (`… * 1em - 0.5px`). Float error puts on-grid values (body = exactly
-  4 rhythm units) a hair over, and `round(up)` then adds a whole extra unit. Body went to 1.88 at 390 and 1440px.
-- It has to be applied **per element**. A line-height length set on `body` is inherited as an absolute value and
-  ignores the child's own font size.
-- ✗ **A half-baseline rhythm is too coarse.** A 50px heading's leading jumped from 1.1 to 1.34. A quarter works:
-  heading/display measure 1.14/1.21 on phone, 1.14/1.13 on laptop, 1.19/1.13 on TV. Body is exactly 1.5.
-  Captions land at 1.41–1.59: small text against this rhythm is coarse. That's accepted, since captions are mostly one line.
-- **Scene padding is whole baselines** (top = chrome 2 + 2 clear = 4; bottom = 3), so top-aligned content starts
-  on the grid (measured 4.00 at 390/1440). Previously chrome + space-m = 3.5 put everything half a line off.
-- **Inside a scene, phase drifts after the first block.** Gaps (space-m = 1.5 baselines) and heading heights (quarter-baseline
-  multiples) aren't whole baselines, so on phone the tall scene's list starts at 8.50.
-- **Limitation: vertical centring breaks baseline *phase*.** `align-content: center` shifts content by an arbitrary
-  amount, so lines are evenly spaced but sit between the overlay's baselines. CSS can't round that offset.
-  Accepted: consistent spacing is the realistic goal, not true baseline alignment.
 
 **Overlay** (`Grid` button beside `Present`; key `G`; remembered in `localStorage`): a fixed `div`
 with the same `--grid` template, 12 `span`s (CSS hides spans 5–12 below the breakpoint), and baselines
