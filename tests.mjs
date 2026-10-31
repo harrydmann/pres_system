@@ -1,6 +1,6 @@
 // Browser tests for the deck. Run: npm i puppeteer-core@23 && node tests.mjs <screenshot-dir>
 import puppeteer from 'puppeteer-core';
-const URL = new URL("./index.html", import.meta.url).href;
+const PAGE = new URL("./index.html", import.meta.url).href;
 const OUT = process.argv[2];
 const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const page = await browser.newPage();
@@ -10,7 +10,7 @@ const results = [];
 const check = (name, ok, info) => results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}  ${JSON.stringify(info)}`);
 
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(URL); await wait(300);
+await page.goto(PAGE); await wait(300);
 check('boot hash', (await state()).hash === '#/start', await state());
 
 await page.keyboard.press('ArrowDown'); await wait(900);
@@ -35,7 +35,7 @@ await page.evaluate(() => document.body.classList.contains('is-presenting') && d
 await page.evaluate(() => document.activeElement.blur());
 
 // Deep link
-await page.goto(URL + '#/tall'); await wait(400);
+await page.goto(PAGE + '#/tall'); await wait(400);
 const tallTop = await page.evaluate(() => document.getElementById('tall').offsetTop);
 check('deep link', (await state()).y === tallTop, { ...(await state()), tallTop });
 
@@ -52,7 +52,7 @@ s = await state();
 check('normal scene snaps', s.y === whyTop || s.y === whyTop + 900, { ...s, whyTop });
 
 // Arrow down from the tall scene: does it reach #/end?
-await page.goto(URL + '#/tall'); await wait(400);
+await page.goto(PAGE + '#/tall'); await wait(400);
 await page.keyboard.press('ArrowDown'); await wait(900);
 check('1st arrow in tall pages within it', (await state()).hash === '#/tall' && (await state()).y === tallTop + tallH - 900, await state());
 await page.keyboard.press('ArrowDown'); await wait(900);
@@ -60,7 +60,7 @@ check('2nd arrow leaves tall scene', (await state()).hash === '#/next', await st
 
 // Phone: tall scene is much taller; count presses to get through
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-await page.goto(URL + '#/tall'); await wait(400);
+await page.goto(PAGE + '#/tall'); await wait(400);
 const ph = await page.evaluate(() => document.getElementById('tall').offsetHeight);
 let presses = 0;
 while ((await state()).hash === '#/tall' && presses < 10) { await page.keyboard.press('ArrowDown'); await wait(900); presses++; }
@@ -70,7 +70,7 @@ check('phone: ArrowUp back into tall scene', (await state()).hash === '#/tall', 
 await page.setViewport({ width: 1440, height: 900 });
 
 // Numeric hash
-await page.goto(URL + '#/2'); await wait(400);
+await page.goto(PAGE + '#/2'); await wait(400);
 check('numeric hash', (await state()).hash === '#/scenes', await state());
 
 console.log(results.join('\n'));
@@ -78,7 +78,7 @@ console.log(results.join('\n'));
 // Screenshots
 for (const [name, w, h, m] of [['phone', 390, 844, 3], ['laptop', 1440, 900, 1], ['tv', 1920, 1080, 1]]) {
   await page.setViewport({ width: w, height: h, deviceScaleFactor: m > 1 ? 2 : 1, isMobile: m > 1 });
-  await page.goto(URL); await wait(400);
+  await page.goto(PAGE); await wait(400);
   await page.screenshot({ path: `${OUT}/${name}-full.png`, fullPage: true });
 }
 await browser.close();
