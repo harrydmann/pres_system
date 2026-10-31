@@ -140,7 +140,6 @@ kbd {
 }
 .chrome__title { font-weight: 600; color: var(--fg); }
 .chrome__section { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chrome__section::before { content: "— "; }
 .chrome__section:empty { display: none; }
 /* Keep buttons right-aligned even when the section label is hidden */
 .chrome__button:first-of-type { margin-left: auto; }
