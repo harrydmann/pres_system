@@ -31,34 +31,53 @@
   }
 
   // ---------- Scroll → state ----------
-  // The scene covering the most of the viewport wins.
-  const ratios = new Map();
+  // The scene under the viewport's horizontal centre line wins. A zero-height
+  // root margin band makes this one observer, no ratio bookkeeping, and it
+  // stays correct for scenes taller than the viewport.
   const io = new IntersectionObserver((entries) => {
-    for (const e of entries) ratios.set(e.target, e.intersectionRatio);
-    let best = active, bestRatio = -1;
-    scenes.forEach((s, i) => {
-      const r = ratios.get(s) ?? 0;
-      if (r > bestRatio) { bestRatio = r; best = i; }
-    });
-    setActive(best);
-  }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
+    for (const e of entries) {
+      if (e.isIntersecting) setActive(scenes.indexOf(e.target));
+    }
+  }, { rootMargin: '-50% 0px -50% 0px' });
   scenes.forEach((s) => io.observe(s));
 
   // ---------- Keyboard → state ----------
   function go(i) {
     i = Math.max(0, Math.min(scenes.length - 1, i));
-    scenes[i].scrollIntoView({ block: 'start' });
+    // Smooth only between neighbours; longer jumps would sweep the chrome
+    // through every scene in between.
+    const behavior = Math.abs(i - active) === 1 ? 'smooth' : 'instant';
+    scenes[i].scrollIntoView({ block: 'start', behavior });
     // IntersectionObserver will confirm; set eagerly so chrome feels instant.
     setActive(i);
   }
 
+  // Within a tall scene, arrows page through it before leaving it.
+  // Returns true if it scrolled.
+  function pageWithin(dir) {
+    const r = scenes[active].getBoundingClientRect();
+    const vh = innerHeight;
+    const hidden = dir > 0 ? r.bottom - vh : -r.top;
+    if (hidden <= 1) return false;
+    scrollBy({ top: dir * Math.min(hidden, vh * 0.85), behavior: 'smooth' });
+    return true;
+  }
+  function advance(dir) {
+    if (!pageWithin(dir)) go(active + dir);
+  }
+
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.closest('input, textarea, select, [contenteditable]')) return;
+    // Let Space activate a focused button/link instead of also advancing.
+    if (e.key === ' ' && e.target.closest('button, a')) return;
     switch (e.key) {
-      case 'ArrowDown': case 'ArrowRight': case 'PageDown': case ' ':
-        e.preventDefault(); go(active + 1); break;
+      case ' ':
+        e.preventDefault(); advance(e.shiftKey ? -1 : 1); break;
+      case 'ArrowDown': case 'ArrowRight': case 'PageDown':
+        e.preventDefault(); advance(1); break;
       case 'ArrowUp': case 'ArrowLeft': case 'PageUp':
-        e.preventDefault(); go(active - 1); break;
+        e.preventDefault(); advance(-1); break;
       case 'Home': e.preventDefault(); go(0); break;
       case 'End':  e.preventDefault(); go(scenes.length - 1); break;
       case 'f': case 'F': togglePresent(); break;
@@ -70,8 +89,9 @@
   function fromHash() {
     const id = location.hash.replace(/^#\/?/, '');
     if (!id) return;
-    const i = scenes.findIndex((s) => s.id === id);
-    if (i >= 0) {
+    // Scenes without an id are addressed by index (that's what render() writes).
+    const i = /^\d+$/.test(id) ? Number(id) : scenes.findIndex((s) => s.id === id);
+    if (i >= 0 && i < scenes.length) {
       scenes[i].scrollIntoView({ block: 'start', behavior: 'instant' });
       setActive(i);
     }

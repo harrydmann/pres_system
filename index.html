@@ -56,8 +56,24 @@
     </section>
 
     <section class="scene" data-layout="media-full" data-section="How it works" id="full">
-      <div class="slot-media media-placeholder media-placeholder--full">Full-bleed media</div>
-      <p class="slot-caption">A caption sits over the bottom edge. Good for a single chart or photograph.</p>
+      <img class="slot-media media" src="media/focal-demo.svg" alt="" style="--focus: 75% 35%">
+      <p class="slot-caption">Full-bleed media declares a focal point, so a phone in portrait crops around the subject instead of the centre.</p>
+    </section>
+
+    <section class="scene" data-layout="sequence" data-tall data-section="How it works" id="tall">
+      <h2 class="slot-heading">A tall scene scrolls freely, then snaps on</h2>
+      <ol class="slot-list">
+        <li>Content taller than the viewport is allowed, but it is an escape hatch, not the norm.</li>
+        <li>The scene keeps its snap point at the top, so scrolling in from above still lands cleanly.</li>
+        <li>Inside it, scrolling is free. The browser will not snap mid-scene because the snap area is taller than the viewport.</li>
+        <li>Below it, the next scene snaps as normal.</li>
+        <li>Filler to make this tall on a laptop. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</li>
+        <li>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</li>
+        <li>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</li>
+        <li>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</li>
+        <li>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</li>
+        <li>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</li>
+      </ol>
     </section>
 
     <section class="scene" data-layout="sequence" data-section="Next" id="next">

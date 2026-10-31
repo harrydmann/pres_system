@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1200" width="2400" height="1200">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3a55"/><stop offset="1" stop-color="#c98b5a"/></linearGradient></defs>
+  <rect width="2400" height="1200" fill="url(#g)"/>
+  <path d="M0 900 L500 620 L900 820 L1400 540 L1900 780 L2400 600 V1200 H0Z" fill="#1d2433"/>
+  <!-- Subject sits at 75% 35% — the declared focal point -->
+  <circle cx="1800" cy="420" r="150" fill="#ffd27a"/>
+  <text x="1800" y="660" font-family="system-ui, sans-serif" font-size="56" fill="#fff" text-anchor="middle">focus 75% 35%</text>
+</svg>

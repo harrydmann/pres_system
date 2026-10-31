@@ -137,8 +137,25 @@ html { scroll-snap-type: y mandatory; }
   gap: var(--space-m);
 }
 
-/* A scene with content taller than the viewport opts out of snapping */
-.scene[data-snap="off"] { scroll-snap-align: none; min-height: auto; }
+/* A scene taller than the viewport. It keeps its snap point: under
+   `mandatory`, a scene with no snap point gets skipped entirely, whereas
+   a snap area taller than the viewport is scrolled through freely. It drops
+   `snap-stop: always` so a fling can carry on into the next scene. */
+.scene[data-tall] {
+  min-height: auto;
+  scroll-snap-stop: normal;
+  align-content: start;
+}
+
+/* Media: declares aspect ratio (--ratio) and focal point (--focus);
+   the layout decides the footprint and crops around the focus. */
+.media {
+  width: 100%;
+  aspect-ratio: var(--ratio, auto);
+  object-fit: cover;
+  object-position: var(--focus, 50% 50%);
+  border-radius: 0.5rem;
+}
 
 /* ---------- Slots (shared vocabulary) ---------- */
 .slot-eyebrow {
@@ -225,8 +242,9 @@ figcaption { margin-top: var(--space-xs); font-size: var(--step--1); color: var(
   grid-template-areas: "stack";
 }
 .scene[data-layout="media-full"] > * { grid-area: stack; }
-.media-placeholder--full {
-  aspect-ratio: auto; min-height: 100dvh; border-radius: 0;
+.media-placeholder--full,
+.scene[data-layout="media-full"] .media {
+  aspect-ratio: auto; height: 100dvh; border-radius: 0;
 }
 .scene[data-layout="media-full"] .slot-caption {
   align-self: end;
