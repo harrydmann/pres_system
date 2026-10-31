@@ -2,7 +2,7 @@
 
 A compact spec, distilled from the exploration in this repo. Hand this file to the
 implementer; it should be enough to build Phase 1 in one pass without re-exploring.
-The reference implementation is `index.html`, `styles.css` and `app.js` (about 400 lines total, no build step).
+The reference implementation is `index.html`, `brand.css`, `styles.css` and `app.js` (about 400 lines total, no build step).
 
 ## What it is
 
@@ -140,6 +140,10 @@ drawn with a `repeating-linear-gradient` of `--baseline`.
 
 ## Brand tokens (Deloitte, first pass)
 
+All brand values live in **`brand.css`** (colours incl. dark mode, font stacks, display weight), plus two things it can't hold:
+the font `<link>` in `index.html` (a CSS `@import` would chain the request) and the logo file `media/brand-mark.svg`.
+`styles.css` is brand-free, so system changes port between repos without touching brand.
+
 Unofficial: nothing authoritative is published, so verify these on the internal brand site.
 - **Open Sans** for everything. Headlines use Light (`--weight-display: 300`), as deloitte.com does. Fallbacks: Aptos, Helvetica, Arial.
   Loaded as a Google Fonts variable font (300–800, `display=swap`). For work, consider self-hosting the file.
@@ -180,3 +184,22 @@ Full-page screenshots draw fixed chrome only once, at the top; that's expected.
   single entry point; it should consume steps before paging within or leaving a scene.
   When scrolling, does reaching a scene reveal all its steps, or are steps scroll-driven? Not decided.
 - **Safari.** Untested. Check `behavior:'instant'`, `100dvh` and snap with tall areas on iOS.
+
+## Syncing to the work repo
+
+This repo is public (MIT) and serves as the **reference implementation**. The work repo is a separate copy with real
+brand assets and content. **Port changes; never fork or merge** (forks of public repos must stay public, and the
+histories will diverge). Keep work-only things (official tokens, logo, deck content) out of this repo.
+
+Record the last synced commit in the work repo, e.g. a line `synced-from: <sha>` in its notes file.
+
+**First build** (work machine agent):
+> Clone https://github.com/<user>/<repo> into a scratch folder. Read REBUILD.md and build from it, using the
+> reference files only where the spec is unclear. Use our own brand.css and logo. Record the HEAD commit as `synced-from`.
+
+**Later updates:**
+> Pull the reference repo. Run `git log <synced-from>..HEAD` and `git diff <synced-from>..HEAD -- . ':!brand.css' ':!media/brand-mark.svg'`.
+> Port each change into our repo by hand (don't merge), skipping brand files. Run our tests, then update `synced-from` to the new HEAD.
+
+Reading only the diff keeps an update to a few hundred lines of context. Descriptive commit messages here matter,
+because the work agent relies on them to understand intent.

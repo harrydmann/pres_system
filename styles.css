@@ -41,38 +41,12 @@
 
   --chrome-h: calc(var(--baseline) * 2);
   --radius: 2px;
-
-  /* Colour — aligned loosely to Deloitte (black/white + green). Unofficial
-     values; verify against the internal brand site.
-     The green is ~2:1 on white: use it for marks (bars, rules, borders),
-     never for text. */
-  --bg: #ffffff;
-  --fg: #000000;
-  --muted: #5e5e5e;        /* 6.5:1 on white */
-  --rule: #d0d0d0;
-  --accent: #86bc24;       /* Deloitte green (commonly cited) */
-  --placeholder: #eeeeee;
-
-  /* Open Sans throughout; headlines in Light (300), per deloitte.com */
-  --font-display: "Open Sans", Aptos, Helvetica, Arial, sans-serif;
-  --font-text: "Open Sans", Aptos, Helvetica, Arial, sans-serif;
-  --weight-display: 300;
 }
 
 /* The one "wide" breakpoint: spreads appear, grid goes to 12 columns.
    Repeated verbatim wherever needed (no custom media without a build). */
 @media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
   :root { --cols: 12; }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000000;
-    --fg: #ffffff;
-    --muted: #a6a6a6;      /* 8.5:1 on black */
-    --rule: #2e2e2e;
-    --placeholder: #1a1a1a;
-  }
 }
 
 /* ---------- Base ---------- */
