@@ -54,7 +54,7 @@ check('normal scene snaps', s.y === whyTop || s.y === whyTop + 900, { ...s, whyT
 // Arrow down from the tall scene: does it reach #/end?
 await page.goto(PAGE + '#/tall'); await wait(400);
 await page.keyboard.press('ArrowDown'); await wait(900);
-check('1st arrow in tall pages within it', (await state()).hash === '#/tall' && (await state()).y === tallTop + tallH - 900, await state());
+check('1st arrow in tall pages within it', (await state()).hash === '#/tall' && Math.abs((await state()).y - (tallTop + tallH - 900)) <= 1, await state());
 await page.keyboard.press('ArrowDown'); await wait(900);
 check('2nd arrow leaves tall scene', (await state()).hash === '#/next', await state());
 

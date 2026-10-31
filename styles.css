@@ -6,22 +6,30 @@
 
 /* ---------- Tokens ---------- */
 :root {
-  /* Fluid type scale. Ratios between steps are fixed; the whole scale
-     slides between a 360px phone and a 1920px screen.
-     Values generated in the spirit of utopia.fyi (ratio ~1.25 → ~1.33). */
-  --step--1: clamp(0.875rem, 0.82rem + 0.25vw, 1.125rem);   /* caption */
-  --step-0:  clamp(1.0625rem, 0.95rem + 0.5vw, 1.5rem);     /* body */
-  --step-1:  clamp(1.375rem, 1.15rem + 1vw, 2.25rem);       /* subheading */
-  --step-2:  clamp(1.875rem, 1.4rem + 2vw, 3.5rem);         /* heading */
-  --step-3:  clamp(2.5rem, 1.6rem + 4vw, 6rem);             /* display */
+  /* Fluid scale. Everything derives from four inputs:
+       viewport  360px → 1920px
+       body      16px  → 24px
+       ratio     1.25  → 1.414 (√2)   so headings grow faster than body
+     Step n = body × ratioⁿ at each end, interpolated linearly between.
+     --fluid is 0 at 360px and 1rem at 1920px, so a token reads
+     clamp(MIN, MIN + (MAX − MIN) × fluid, MAX) — both ends visible. */
+  --fluid: calc((100vw - 22.5rem) / 97.5);
+
+  /*                min         Δ (max − min)              max          px at 360 → 1920 */
+  --step--1: clamp(0.8rem,    0.8rem    + 0.2607 * var(--fluid), 1.0607rem); /* 12.8 → 17   caption */
+  --step-0:  clamp(1rem,      1rem      + 0.5    * var(--fluid), 1.5rem);    /* 16   → 24   body    */
+  --step-1:  clamp(1.25rem,   1.25rem   + 0.8713 * var(--fluid), 2.1213rem); /* 20   → 34           */
+  --step-2:  clamp(1.5625rem, 1.5625rem + 1.4375 * var(--fluid), 3rem);      /* 25   → 48           */
+  --step-3:  clamp(1.9531rem, 1.9531rem + 2.2895 * var(--fluid), 4.2426rem); /* 31   → 68   heading */
+  --step-4:  clamp(2.4414rem, 2.4414rem + 3.5586 * var(--fluid), 6rem);      /* 39   → 96   display */
 
   /* Vertical rhythm. The baseline is one line of body text; the rhythm
      unit is a quarter of it. All vertical space is a multiple of --rhythm,
      and every line-height rounds up to it (see Base), so blocks stack on
      the grid. Half-baseline was tried: too coarse — a 50px heading's
      leading jumped from 1.1 to 1.34. */
-  --baseline: calc(var(--step-0) * 1.5);
-  --rhythm: calc(var(--baseline) / 4);
+  --baseline: calc(var(--step-0) * 1.5);   /* 24 → 36px */
+  --rhythm: calc(var(--baseline) / 4);      /*  6 →  9px */
 
   --space-xs: calc(var(--rhythm) * 2);
   --space-s:  calc(var(--rhythm) * 4);
@@ -33,8 +41,8 @@
      overlay. Named lines: `full` is edge to edge, `content` is inside the
      gutters, `col N` is the start of column N. */
   --cols: 4;
-  --gutter: clamp(1.25rem, 4vw, 5rem);
-  --col-gap: clamp(0.75rem, 0.5rem + 1vw, 2rem);
+  --col-gap: var(--baseline);                                          /* 24 → 36px: horizontal gap = one line */
+  --gutter: clamp(1.5rem, 1.5rem + 4.5 * var(--fluid), 6rem);          /* 24 → 96px: = col-gap on phones */
   --edge: max(0px, calc(var(--gutter) - var(--col-gap)));
   --grid:
     [full-start] var(--edge)
@@ -93,9 +101,11 @@ body {
 /* Leading: each element sets a ratio (--leading); the line-height is that
    ratio rounded up to the rhythm. Applied per element because an inherited
    absolute line-height would ignore the child's own font size.
-   Body text (1.5 × step-0) lands exactly on the baseline. */
+   Body text (1.5 × step-0) lands exactly on the baseline. The −0.5px
+   absorbs float error: without it, values already on the grid (body)
+   round up a whole extra unit at some widths. */
 :where(body, body *) {
-  line-height: round(up, calc(var(--leading, 1.5) * 1em), var(--rhythm));
+  line-height: round(up, calc(var(--leading, 1.5) * 1em - 0.5px), var(--rhythm));
 }
 
 h1, h2, h3, p, ol, ul, figure { margin: 0; }
@@ -215,7 +225,7 @@ html { scroll-snap-type: y mandatory; }
 .slot-heading {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: var(--step-2);
+  font-size: var(--step-3);
   --leading: 1.1;
   letter-spacing: -0.01em;
   text-wrap: balance;
@@ -264,10 +274,10 @@ figcaption { margin-top: var(--space-xs); font-size: var(--step--1); --leading: 
 
 /* title: eyebrow / display heading / body, left-aligned, generous */
 .scene[data-layout="title"] { row-gap: var(--space-s); }
-.scene[data-layout="title"] .slot-heading { font-size: var(--step-3); }
+.scene[data-layout="title"] .slot-heading { font-size: var(--step-4); }
 
 /* statement: a single large line of text, centred vertically */
-.scene[data-layout="statement"] .slot-heading { font-size: var(--step-3); }
+.scene[data-layout="statement"] .slot-heading { font-size: var(--step-4); }
 
 /* text-media: media above text on narrow; side by side on wide */
 .scene[data-layout="text-media"] { align-items: center; }
@@ -296,7 +306,7 @@ figcaption { margin-top: var(--space-xs); font-size: var(--step--1); --leading: 
 
 /* end: centred, quiet */
 .scene[data-layout="end"] { justify-items: center; text-align: center; }
-.scene[data-layout="end"] .slot-heading { font-size: var(--step-3); }
+.scene[data-layout="end"] .slot-heading { font-size: var(--step-4); }
 
 @media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
   .scene[data-layout="title"] .slot-heading,

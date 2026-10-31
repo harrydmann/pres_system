@@ -39,6 +39,39 @@ The document is primary and presenting is a mode. It is not a scaled fixed-stage
 | One fluid type scale (5 steps, `clamp(rem, rem + vw, rem)`) + `--gutter` + `--measure: 36em`; spacing derives from the rhythm (see Grid and rhythm) | See the open question on TV below. |
 | Presenting mode = body class + Fullscreen API + idle-cursor timer (2.5s); top chrome fades out and reappears on hover | Exit via Esc, `f`, button, or leaving fullscreen (listen to `fullscreenchange`). |
 
+## Scale: four inputs, everything derived
+
+| Input | 360px | 1920px |
+|---|---|---|
+| Body size | 16px | 24px |
+| Ratio | 1.25 | 1.414 (√2) |
+
+Step n = body × ratioⁿ at each end, interpolated linearly. The higher ratio at the large end makes headings
+grow faster than body. Every token shares one interpolation, so all of them reach their minimum and maximum at the same widths:
+
+```css
+--fluid: calc((100vw - 22.5rem) / 97.5);     /* 0 at 360px → 1rem at 1920px */
+--step-0: clamp(1rem, 1rem + 0.5 * var(--fluid), 1.5rem);   /* clamp(MIN, MIN + Δ·fluid, MAX) */
+```
+
+| Token | 360 → 1920px | Use |
+|---|---|---|
+| step −1 | 12.8 → 17 | caption, eyebrow, chrome |
+| step 0 | 16 → 24 | body |
+| step 1 / 2 | 20 → 34 / 25 → 48 | spare |
+| step 3 | 31 → 68 | heading |
+| step 4 | 39 → 96 | display |
+| baseline (1.5 × body) | 24 → 36 | line spacing, **col-gap** |
+| rhythm (baseline ÷ 4) | 6 → 9 | all vertical spacing |
+| gutter | 24 → 96 | equals col-gap on phones, so the edge track is 0 |
+
+- Integers at both ends; every second step doubles at the top (24/48/96).
+- To regenerate with other inputs: MIN = body_min × r_minⁿ, MAX = body_max × r_maxⁿ, Δ = MAX − MIN (in rem).
+  The `--fluid` divisor is (1920 − 360) / 16 = 97.5.
+- ✗ The previous hand-picked clamps each hit their maximum at a different width, so the scale's
+  proportions drifted across sizes, and no value was a whole pixel at either end.
+- Caveat: `--fluid` assumes a 16px root. If a user changes their default size, the curve shifts a little, but the clamp still caps it.
+
 ## Grid and rhythm
 
 **Columns: defined once, as a token on `:root`**, used by every `.scene` and by the overlay:
@@ -76,10 +109,13 @@ The space scale is in rhythm units (xs 2, s 4, m 6, l 12, xl 20). Every element'
 .slot-heading { --leading: 1.1; }   .slot-caption, figcaption, .slot-eyebrow { --leading: 1.35; }
 ```
 
+- **Subtract 0.5px before rounding up** (`… * 1em - 0.5px`). Float error puts on-grid values (body = exactly
+  4 rhythm units) a hair over, and `round(up)` then adds a whole extra unit. Body went to 1.88 at 390 and 1440px.
 - It has to be applied **per element**. A line-height length set on `body` is inherited as an absolute value and
   ignores the child's own font size.
 - ✗ **A half-baseline rhythm is too coarse.** A 50px heading's leading jumped from 1.1 to 1.34. A quarter works:
-  headings are 1.11–1.15 on laptop and TV, about 1.27 on phone (acceptable at that size). Body is exactly 1.5.
+  heading/display measure 1.14/1.21 on phone, 1.14/1.13 on laptop, 1.19/1.13 on TV. Body is exactly 1.5.
+  Captions land at 1.41–1.59: small text against this rhythm is coarse. That's accepted, since captions are mostly one line.
 - **Limitation: vertical centring breaks baseline *phase*.** `align-content: center` shifts content by an arbitrary
   amount, so lines are evenly spaced but sit between the overlay's baselines. CSS can't round that offset.
   Accepted: consistent spacing is the realistic goal, not true baseline alignment.
@@ -117,8 +153,8 @@ Full-page screenshots draw fixed chrome only once, at the top; that's expected.
 
 ## Open questions (decide before or in Phase 2)
 
-- **TV scaling.** The type scale is `vw`-based and caps at about 1920px, so a TV looks like a big laptop, and short landscape screens get no extra room.
-  Candidate: base the fluid term on `min(vw, vh·1.6)`, or scale up only in presenting mode.
+- **TV scaling.** The scale is width-based and caps at 1920px, so a TV looks like a big laptop, and short landscape screens get no extra room.
+  Candidate: base `--fluid` on `min(100vw, 100vh·16/9)`. That's a one-line change now that every token shares `--fluid`.
 - **Steps (Phase 2).** Extend state to `(scene, step)` and the hash to `#/id/step`. `advance()` already exists as the
   single entry point; it should consume steps before paging within or leaving a scene.
   When scrolling, does reaching a scene reveal all its steps, or are steps scroll-driven? Not decided.
