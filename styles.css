@@ -1,0 +1,252 @@
+/* =========================================================
+   Web deck — Phase 1
+   One fluid type scale, one grid, a small set of scene layouts.
+   ========================================================= */
+
+/* ---------- Tokens ---------- */
+:root {
+  /* Fluid type scale. Ratios between steps are fixed; the whole scale
+     slides between a 360px phone and a 1920px screen.
+     Values generated in the spirit of utopia.fyi (ratio ~1.25 → ~1.33). */
+  --step--1: clamp(0.875rem, 0.82rem + 0.25vw, 1.125rem);   /* caption */
+  --step-0:  clamp(1.0625rem, 0.95rem + 0.5vw, 1.5rem);     /* body */
+  --step-1:  clamp(1.375rem, 1.15rem + 1vw, 2.25rem);       /* subheading */
+  --step-2:  clamp(1.875rem, 1.4rem + 2vw, 3.5rem);         /* heading */
+  --step-3:  clamp(2.5rem, 1.6rem + 4vw, 6rem);             /* display */
+
+  /* Fluid space scale, same idea */
+  --space-xs: clamp(0.5rem, 0.4rem + 0.4vw, 0.875rem);
+  --space-s:  clamp(0.75rem, 0.6rem + 0.7vw, 1.5rem);
+  --space-m:  clamp(1.25rem, 0.9rem + 1.5vw, 3rem);
+  --space-l:  clamp(2rem, 1.2rem + 3.5vw, 6rem);
+  --space-xl: clamp(3rem, 1.5rem + 6vw, 10rem);
+
+  /* Gutter: the inset every scene respects */
+  --gutter: clamp(1.25rem, 4vw, 5rem);
+
+  /* Measure: max comfortable line length for body copy */
+  --measure: 36em;
+
+  --chrome-h: 3rem;
+
+  /* Colour — deliberately neutral; swap later */
+  --bg: #f6f3ee;
+  --fg: #141311;
+  --muted: #6b665d;
+  --rule: #d8d2c7;
+  --accent: #1b4dff;
+  --placeholder: #e5dfd4;
+
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15140f;
+    --fg: #f3efe7;
+    --muted: #a39d92;
+    --rule: #2d2b25;
+    --accent: #7c9cff;
+    --placeholder: #26241e;
+  }
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p, ol, ul, figure { margin: 0; }
+
+img, video, svg { display: block; max-width: 100%; }
+
+kbd {
+  font: inherit; font-size: 0.85em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--rule); border-radius: 0.3em;
+}
+
+/* ---------- Chrome ---------- */
+.chrome {
+  position: fixed; left: 0; right: 0; z-index: 10;
+  pointer-events: none;
+}
+.chrome > * { pointer-events: auto; }
+
+.chrome--top {
+  top: 0;
+  height: var(--chrome-h);
+  padding: 0 var(--gutter);
+  padding-top: env(safe-area-inset-top);
+  display: flex; align-items: center; gap: var(--space-s);
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.chrome__title { font-weight: 600; color: var(--fg); }
+.chrome__section { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chrome__section::before { content: "— "; }
+.chrome__section:empty { display: none; }
+
+.chrome__present {
+  font: inherit; color: var(--muted);
+  background: none; border: 1px solid var(--rule); border-radius: 999px;
+  padding: 0.2em 0.9em; cursor: pointer;
+}
+.chrome__present:hover { color: var(--fg); border-color: var(--fg); }
+
+.chrome--bottom { bottom: 0; }
+.progress { height: 3px; background: var(--rule); }
+.progress__bar {
+  height: 100%; width: 0%;
+  background: var(--accent);
+  transition: width 200ms ease-out;
+}
+
+/* Presenting mode: hide chrome text, keep progress; hide cursor when idle */
+body.is-presenting .chrome--top { opacity: 0; transition: opacity 300ms; }
+body.is-presenting .chrome--top:hover { opacity: 1; }
+body.is-presenting.is-idle { cursor: none; }
+
+/* ---------- Deck + scenes ---------- */
+.deck {
+  /* The body scrolls; snapping is set on the scroll container, which is
+     the root. Using the root keeps native mobile behaviour (address bar
+     collapse, overscroll) intact. */
+}
+html { scroll-snap-type: y mandatory; }
+
+.scene {
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: calc(var(--chrome-h) + var(--space-m)) var(--gutter) var(--space-l);
+  display: grid;
+  align-content: center;
+  gap: var(--space-m);
+}
+
+/* A scene with content taller than the viewport opts out of snapping */
+.scene[data-snap="off"] { scroll-snap-align: none; min-height: auto; }
+
+/* ---------- Slots (shared vocabulary) ---------- */
+.slot-eyebrow {
+  font-size: var(--step--1);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.slot-heading {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-2);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.slot-body {
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+.slot-caption {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.slot-list {
+  padding-left: 1.2em;
+  display: grid; gap: var(--space-s);
+  max-width: var(--measure);
+}
+
+/* Media placeholder: declares an aspect ratio, layout decides footprint */
+.media-placeholder {
+  aspect-ratio: var(--ratio, 16 / 9);
+  width: 100%;
+  background: var(--placeholder);
+  border-radius: 0.5rem;
+  display: grid; place-items: center;
+  color: var(--muted); font-size: var(--step--1);
+}
+figcaption { margin-top: var(--space-xs); font-size: var(--step--1); color: var(--muted); }
+
+/* ---------- Layouts ----------
+   Each layout defines its narrow arrangement by default and adds
+   designed arrangements at wider sizes. No free positioning. */
+
+/* title: eyebrow / display heading / body, left-aligned, generous */
+.scene[data-layout="title"] {
+  gap: var(--space-s);
+}
+.scene[data-layout="title"] .slot-heading {
+  font-size: var(--step-3);
+  max-width: 14ch;
+}
+.scene[data-layout="title"] .slot-body { margin-top: var(--space-s); }
+
+/* statement: a single large line of text, centred vertically */
+.scene[data-layout="statement"] .slot-heading {
+  font-size: var(--step-3);
+  max-width: 18ch;
+}
+
+/* text-media: stacks on narrow; two columns from medium up */
+.scene[data-layout="text-media"] {
+  grid-template-areas: "media" "text";
+  align-items: center;
+}
+.scene[data-layout="text-media"] .slot-text  { grid-area: text; display: grid; gap: var(--space-s); }
+.scene[data-layout="text-media"] .slot-media { grid-area: media; }
+
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  .scene[data-layout="text-media"] {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-areas: "text media";
+    column-gap: var(--space-l);
+  }
+  .scene[data-layout="text-media"][data-flip] {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas: "media text";
+  }
+}
+
+/* media-full: media bleeds to the edges; caption overlays the bottom */
+.scene[data-layout="media-full"] {
+  padding: 0;
+  grid-template-areas: "stack";
+}
+.scene[data-layout="media-full"] > * { grid-area: stack; }
+.media-placeholder--full {
+  aspect-ratio: auto; min-height: 100dvh; border-radius: 0;
+}
+.scene[data-layout="media-full"] .slot-caption {
+  align-self: end;
+  padding: var(--space-m) var(--gutter) calc(var(--space-m) + 3px);
+  background: linear-gradient(to top, var(--bg), transparent);
+  color: var(--fg);
+}
+
+/* sequence: heading above a numbered list; side-by-side when wide */
+@media (min-width: 64rem) {
+  .scene[data-layout="sequence"] {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: var(--space-l);
+    align-items: start;
+  }
+  .scene[data-layout="sequence"] .slot-list { margin-top: 0.4em; }
+}
+
+/* end: centred, quiet */
+.scene[data-layout="end"] {
+  justify-items: center; text-align: center;
+}
+.scene[data-layout="end"] .slot-heading { font-size: var(--step-3); }

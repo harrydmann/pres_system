@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Web deck — Phase 1 scaffold</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Fixed chrome: lives outside the scroll container -->
+  <header class="chrome chrome--top">
+    <span class="chrome__title" data-deck-title>Web deck</span>
+    <span class="chrome__section" data-current-section></span>
+    <button class="chrome__present" data-present-toggle type="button" aria-label="Toggle presenting mode">Present</button>
+  </header>
+
+  <div class="chrome chrome--bottom" aria-hidden="true">
+    <div class="progress"><div class="progress__bar" data-progress></div></div>
+  </div>
+
+  <!-- The deck: one scrolling column of scenes -->
+  <main class="deck" data-deck>
+
+    <section class="scene" data-layout="title" data-section="Intro" id="start">
+      <div class="slot-eyebrow">A working scaffold</div>
+      <h1 class="slot-heading">A presentation that is also a web page</h1>
+      <p class="slot-body">Scroll, swipe, or use the arrow keys. Every scene is a responsive layout — a spread on a wide screen, a well-set page on a phone.</p>
+    </section>
+
+    <section class="scene" data-layout="statement" data-section="Why" id="why">
+      <p class="slot-heading">One idea per scene. The whitespace is doing the work.</p>
+    </section>
+
+    <section class="scene" data-layout="text-media" data-section="How it works" id="scenes">
+      <div class="slot-text">
+        <div class="slot-eyebrow">Scenes</div>
+        <h2 class="slot-heading">The unit is a scene, not a slide</h2>
+        <p class="slot-body">A scene fills the viewport and snaps into place. Inside it, a layout decides how text and media are arranged at each size — the author only chooses the layout and fills the slots.</p>
+      </div>
+      <figure class="slot-media">
+        <div class="media-placeholder" style="--ratio: 4 / 3">4 : 3 media</div>
+        <figcaption>Media declares an aspect ratio; the layout decides the footprint.</figcaption>
+      </figure>
+    </section>
+
+    <section class="scene" data-layout="text-media" data-flip data-section="How it works" id="chrome">
+      <div class="slot-text">
+        <div class="slot-eyebrow">Chrome</div>
+        <h2 class="slot-heading">Fixed elements live outside the scroll</h2>
+        <p class="slot-body">The top strip shows the deck title and current section. The bottom edge is a progress bar. Both are the same on every scene and never move.</p>
+      </div>
+      <figure class="slot-media">
+        <div class="media-placeholder" style="--ratio: 1">1 : 1 media</div>
+      </figure>
+    </section>
+
+    <section class="scene" data-layout="media-full" data-section="How it works" id="full">
+      <div class="slot-media media-placeholder media-placeholder--full">Full-bleed media</div>
+      <p class="slot-caption">A caption sits over the bottom edge. Good for a single chart or photograph.</p>
+    </section>
+
+    <section class="scene" data-layout="sequence" data-section="Next" id="next">
+      <h2 class="slot-heading">What Phase 2 adds</h2>
+      <ol class="slot-list">
+        <li>Steps inside a scene — progressive reveal, driven by scroll or keyboard.</li>
+        <li>Transitions between scenes.</li>
+        <li>Then Markdown authoring, one file per scene.</li>
+      </ol>
+    </section>
+
+    <section class="scene" data-layout="end" data-section="End" id="end">
+      <p class="slot-heading">Thanks.</p>
+      <p class="slot-body">Press <kbd>Home</kbd> to go back to the start.</p>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
