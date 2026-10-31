@@ -193,13 +193,23 @@ histories will diverge). Keep work-only things (official tokens, logo, deck cont
 
 Record the last synced commit in the work repo, e.g. a line `synced-from: <sha>` in its notes file.
 
+The work machine may have no git (macOS without Xcode command line tools). Everything below works over plain HTTPS
+with `curl`; no git and no GitHub login needed, because the repo is public.
+
 **First build** (work machine agent):
-> Clone https://github.com/harrydmann/pres_system into a scratch folder. Read REBUILD.md and build from it, using the
-> reference files only where the spec is unclear. Use our own brand.css and logo. Record the HEAD commit as `synced-from`.
+> Download https://github.com/harrydmann/pres_system/archive/refs/heads/main.tar.gz into a scratch folder and unpack it.
+> Read REBUILD.md and build from it, using the reference files only where the spec is unclear. Use our own brand.css and logo.
+> Get the commit it came from with `curl -s https://api.github.com/repos/harrydmann/pres_system/commits/main` (field `sha`)
+> and record it as `synced-from`.
+
+A tarball has no commit hash inside it, so always record the sha from the API at the same time as downloading.
 
 **Later updates:**
-> Pull the reference repo. Run `git log <synced-from>..HEAD` and `git diff <synced-from>..HEAD -- . ':!brand.css' ':!media/brand-mark.svg'`.
-> Port each change into our repo by hand (don't merge), skipping brand files. Run our tests, then update `synced-from` to the new HEAD.
+> Fetch https://github.com/harrydmann/pres_system/compare/<synced-from>...main.patch. It contains every new commit's
+> message and diff. Port each change into our repo by hand (don't merge), skipping `brand.css` and `media/brand-mark.svg`.
+> Run our tests, then set `synced-from` to the latest sha from the commits API.
+
+(With git available, `git log`/`git diff <synced-from>..HEAD` on a clone gives the same thing.)
 
 Reading only the diff keeps an update to a few hundred lines of context. Descriptive commit messages here matter,
 because the work agent relies on them to understand intent.
