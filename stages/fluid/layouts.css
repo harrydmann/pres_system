@@ -1,0 +1,69 @@
+/* =========================================================
+   Fluid stage — layouts
+   Narrow (4 columns): every slot spans the content area, in source order
+   unless noted. Wide (12 columns): slots are placed on shared column
+   lines, so every internal edge in the deck is one of the same 11 lines.
+   No free positioning.
+
+   Slots: eyebrow · heading · body · list · media · caption. In a scene
+   with media, the text slots arrive grouped in .slot-text.
+   ========================================================= */
+
+/* Display type: title, statement and end headings. */
+:is([data-layout="title"], [data-layout="statement"], [data-layout="end"]) .slot-heading {
+  --lines: 2; --leading: 1.1;
+}
+
+/* text-media: media above text on narrow; side by side on wide. Text
+   hangs from the top of the media: centring two whole-baseline blocks
+   against each other can leave a half-line offset. */
+.scene[data-layout="text-media"] { align-items: start; }
+.scene[data-layout="text-media"] .slot-media { order: -1; }
+
+/* sequence: heading above a numbered list; side by side on wide */
+.scene[data-layout="sequence"] { align-items: start; }
+
+/* media-full: media bleeds edge to edge; caption overlays the bottom */
+.scene[data-layout="media-full"] { padding-block: 0; }
+.scene[data-layout="media-full"] .scene__canvas > * { grid-row: 1; }
+.scene[data-layout="media-full"] .slot-media { grid-column: full; }
+.scene[data-layout="media-full"] .slot-media > :is(.media, .media-placeholder) {
+  aspect-ratio: auto; height: 100dvh; border-radius: 0;
+}
+.scene[data-layout="media-full"] .slot-media > figcaption { display: none; }
+.scene[data-layout="media-full"] .slot-caption {
+  grid-column: full;
+  align-self: end;
+  /* full-width gradient, but text starts on the content line */
+  padding: var(--space-m) var(--gutter) calc(var(--space-m) + 3px);
+  background: linear-gradient(to top, var(--bg), transparent);
+  color: var(--fg);
+}
+
+/* end: centred, quiet */
+.scene[data-layout="end"] { justify-items: center; text-align: center; }
+
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  .slot-heading { --leading: 1.15; }
+  :is([data-layout="title"], [data-layout="statement"], [data-layout="end"]) .slot-heading {
+    --lines: 3; --leading: 1.15;
+  }
+
+  .scene[data-layout="title"] .slot-heading,
+  .scene[data-layout="statement"] .slot-heading { grid-column: col 1 / span 8; }
+  .scene[data-layout="title"] .slot-body        { grid-column: col 1 / span 6; }
+
+  /* text 4 cols | 1 empty | media 7 cols.
+     Side-by-side slots need grid-row: 1, or auto-placement drops the
+     second to a new row when its column comes before the first one's. */
+  .scene[data-layout="text-media"] .scene__canvas > * { grid-row: 1; }
+  .scene[data-layout="text-media"] .slot-text   { grid-column: col 1 / span 4; }
+  .scene[data-layout="text-media"] .slot-media  { grid-column: col 6 / content-end; }
+  /* flipped: media 7 cols | 1 empty | text 4 cols */
+  .scene[data-layout="text-media"][data-flip] .slot-media { grid-column: col 1 / span 7; }
+  .scene[data-layout="text-media"][data-flip] .slot-text  { grid-column: col 9 / content-end; }
+
+  .scene[data-layout="sequence"] .scene__canvas > * { grid-row: 1; }
+  .scene[data-layout="sequence"] .slot-heading  { grid-column: col 1 / span 4; }
+  .scene[data-layout="sequence"] .slot-list     { grid-column: col 6 / content-end; }
+}

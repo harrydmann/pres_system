@@ -1,0 +1,101 @@
+/* =========================================================
+   Fixed stage — a 1280×720 canvas, scaled as a unit
+   The engine sets --stage-scale = min(vw/W, vh/H) on resize.
+   ========================================================= */
+
+html { scroll-snap-type: y mandatory; }
+
+body { font-size: var(--step-0); line-height: 1.3; }
+.chrome--top { font-size: 0.875rem; }
+
+/* No column overlay here; G outlines the safe area instead (below).
+   The brand mark is the template's job, inside the canvas. */
+.grid-overlay, .brand-mark { display: none; }
+
+/* Scene = one viewport-tall cell holding a centred canvas.
+   Tracks are minmax(0, 1fr) so they never grow to the unscaled canvas
+   size, which would break centring when the canvas exceeds the viewport. */
+.scene {
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  overflow: hidden;
+  padding: var(--chrome-h) 0 3px;   /* keep clear of chrome + progress bar */
+}
+
+/* The canvas is laid out at its true size, then scaled. */
+.scene__canvas {
+  width: calc(var(--stage-width) * 1px);
+  height: calc(var(--stage-height) * 1px);
+  transform: scale(var(--stage-scale));
+  transform-origin: center;
+
+  /* Re-scope colour tokens for everything inside the canvas */
+  --fg: var(--canvas-fg);
+  --muted: var(--canvas-muted);
+  --rule: var(--canvas-rule);
+  background: var(--canvas);
+  color: var(--fg);
+
+  padding: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left);
+  display: grid;
+  align-content: start;
+  row-gap: var(--space-m);
+  position: relative;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / .1);
+}
+
+/* ---------- Slots ---------- */
+.slot { min-width: 0; }
+
+.slot-eyebrow {
+  font-size: var(--step--1);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.slot-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-2);
+  line-height: 1.15;
+}
+.slot-list, .slot ul, .slot ol {
+  padding-left: 1.1em;
+  display: grid; gap: var(--space-s);
+  align-content: start;
+}
+.slot-body + .slot-body { margin-top: calc(-1 * var(--space-m) + var(--space-s)); }
+.slot-caption, figcaption { font-size: var(--step--1); color: var(--muted); margin-top: var(--space-xs); }
+.slot-text { display: grid; gap: var(--space-s); align-content: start; }
+
+.media, .media-placeholder {
+  width: 100%;
+  aspect-ratio: var(--ratio, 16 / 9);
+  object-fit: cover;
+  object-position: var(--focus, 50% 50%);
+}
+.media-placeholder {
+  background: var(--placeholder);
+  display: grid; place-items: center;
+  color: var(--muted); font-size: var(--step--1);
+}
+
+/* Footer inside every canvas — TEMPLATE: mirror the master's footer */
+.scene__canvas::after {
+  content: attr(data-footer);
+  position: absolute;
+  left: var(--margin-left); right: var(--margin-right); bottom: 20pt;
+  font-size: var(--step--1); color: var(--muted);
+}
+
+/* Debug: G outlines the safe area */
+html.show-grid .scene__canvas::before {
+  content: "";
+  position: absolute; pointer-events: none;
+  inset: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left);
+  outline: 1px dashed rgb(255 0 0 / .5);
+}

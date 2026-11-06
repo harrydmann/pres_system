@@ -1,17 +1,30 @@
-// Browser tests for the deck. Run: npm i puppeteer-core@23 && node tests.mjs <screenshot-dir>
+// Browser tests for the deck.
+//   npm i puppeteer-core@23
+//   node serve.mjs 3000 &            (decks load over fetch, so no file://)
+//   node tests.mjs [screenshot-dir]  (CHROME=/path/to/chrome to override)
 import puppeteer from 'puppeteer-core';
-const PAGE = new URL("./index.html", import.meta.url).href;
+const BASE = process.env.BASE || 'http://localhost:3000/';
+const STORY = BASE + '?deck=demo-story';
+const PROPOSAL = BASE + '?deck=demo-proposal';
 const OUT = process.argv[2];
-const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: process.env.CHROME_ARGS?.split(' ') });
 const page = await browser.newPage();
+const errors = [];
+page.on('pageerror', (e) => errors.push(e.message));
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 const state = () => page.evaluate(() => ({ hash: location.hash, section: document.querySelector('[data-current-section]').textContent, y: Math.round(scrollY) }));
 const results = [];
 const check = (name, ok, info) => results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}  ${JSON.stringify(info)}`);
+// Rendering is async (deck is fetched); wait until scenes exist
+const goto = async (url) => { await page.goto(url); await page.waitForSelector('.scene'); await wait(300); };
 
+// ============ Fluid stage (demo-story) ============
 await page.setViewport({ width: 1440, height: 900 });
-await page.goto(PAGE); await wait(300);
+await goto(STORY);
 check('boot hash', (await state()).hash === '#/start', await state());
+check('stage attribute', await page.evaluate(() => document.documentElement.dataset.stage) === 'fluid', {});
+check('deck title from frontmatter', await page.evaluate(() => document.title) === 'Web deck', {});
 
 await page.keyboard.press('ArrowDown'); await wait(900);
 check('arrow advances', (await state()).hash === '#/why', await state());
@@ -35,7 +48,7 @@ await page.evaluate(() => document.body.classList.contains('is-presenting') && d
 await page.evaluate(() => document.activeElement.blur());
 
 // Deep link
-await page.goto(PAGE + '#/tall'); await wait(400);
+await goto(STORY + '#/tall');
 const tallTop = await page.evaluate(() => document.getElementById('tall').offsetTop);
 check('deep link', (await state()).y === tallTop, { ...(await state()), tallTop });
 
@@ -51,8 +64,8 @@ await page.evaluate((y) => scrollTo(0, y), whyTop + 300); await wait(800);
 s = await state();
 check('normal scene snaps', s.y === whyTop || s.y === whyTop + 900, { ...s, whyTop });
 
-// Arrow down from the tall scene: does it reach #/end?
-await page.goto(PAGE + '#/tall'); await wait(400);
+// Arrow down from the tall scene pages within it, then leaves
+await goto(STORY + '#/tall');
 await page.keyboard.press('ArrowDown'); await wait(900);
 check('1st arrow in tall pages within it', (await state()).hash === '#/tall' && Math.abs((await state()).y - (tallTop + tallH - 900)) <= 1, await state());
 await page.keyboard.press('ArrowDown'); await wait(900);
@@ -60,23 +73,37 @@ check('2nd arrow leaves tall scene', (await state()).hash === '#/next', await st
 
 // Phone: tall scene is much taller; count presses to get through
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-await page.goto(PAGE + '#/tall'); await wait(400);
+await goto(STORY + '#/tall');
 const ph = await page.evaluate(() => document.getElementById('tall').offsetHeight);
 let presses = 0;
 while ((await state()).hash === '#/tall' && presses < 10) { await page.keyboard.press('ArrowDown'); await wait(900); presses++; }
-check(`phone: tall scene (${ph}px) paged through in ${presses} presses`, (await state()).hash === '#/next' && presses === Math.ceil((ph - 844) / (844*0.85)) + 1, await state());
+check(`phone: tall scene (${ph}px) paged through in ${presses} presses`, (await state()).hash === '#/next' && presses === Math.ceil((ph - 844) / (844 * 0.85)) + 1, await state());
 await page.keyboard.press('ArrowUp'); await wait(900);
 check('phone: ArrowUp back into tall scene', (await state()).hash === '#/tall', await state());
 await page.setViewport({ width: 1440, height: 900 });
 
 // Numeric hash
-await page.goto(PAGE + '#/2'); await wait(400);
+await goto(STORY + '#/2');
 check('numeric hash', (await state()).hash === '#/scenes', await state());
 
+// Markdown rendering
+const md = await page.evaluate(() => ({
+  heading: document.querySelector('#scenes .slot-text > h2.slot-heading')?.textContent,
+  eyebrow: document.querySelector('#scenes .slot-text > .slot-eyebrow')?.textContent,
+  caption: document.querySelector('#scenes figure.slot-media figcaption')?.textContent,
+  ratio: document.querySelector('#scenes .media-placeholder')?.style.getPropertyValue('--ratio'),
+  focus: document.querySelector('#full img.media')?.style.getPropertyValue('--focus'),
+  listItems: document.querySelectorAll('#tall ol.slot-list > li').length,
+  kbd: !!document.querySelector('#end .slot-body kbd'),
+  tall: document.getElementById('tall').hasAttribute('data-tall'),
+  flip: document.getElementById('chrome').hasAttribute('data-flip'),
+}));
+check('markdown → slots', md.heading === 'The unit is a scene, not a slide' && md.eyebrow === 'Scenes' && md.caption?.startsWith('Media declares')
+  && md.ratio.trim() === '4/3' && md.focus.trim() === '75% 35%' && md.listItems === 10 && md.kbd && md.tall && md.flip, md);
+
 // Grid overlay
-await page.setViewport({ width: 1440, height: 900 });
 await page.evaluate(() => localStorage.clear());
-await page.goto(PAGE + '#/scenes'); await wait(400);
+await goto(STORY + '#/scenes');
 const overlayState = () => page.evaluate(() => ({
   hidden: document.querySelector('[data-grid-overlay]').hidden,
   pressed: document.querySelector('[data-grid-toggle]').getAttribute('aria-pressed'),
@@ -85,7 +112,7 @@ const overlayState = () => page.evaluate(() => ({
 check('grid hidden by default', (await overlayState()).hidden === true, await overlayState());
 await page.click('[data-grid-toggle]'); await wait(100);
 check('grid button shows 12 cols', (await overlayState()).hidden === false && (await overlayState()).cols === 12 && (await overlayState()).pressed === 'true', await overlayState());
-await page.reload(); await wait(400);
+await page.reload(); await page.waitForSelector('.scene'); await wait(400);
 check('grid persists across reload', (await overlayState()).hidden === false, await overlayState());
 // Slot edges sit on overlay column edges
 const edges = await page.evaluate(() => {
@@ -99,7 +126,9 @@ const edges = await page.evaluate(() => {
 check('slots align to overlay columns (px off)', Object.values(edges).every(v => v <= 1), edges);
 await page.keyboard.press('g'); await wait(100);
 check('G key hides grid', (await overlayState()).hidden === true, await overlayState());
+// Changing isMobile makes Puppeteer reload the page; wait for the deck to render again
 await page.setViewport({ width: 390, height: 844, isMobile: true });
+await page.waitForSelector('.scene'); await wait(300);
 await page.keyboard.press('g'); await wait(200);
 check('phone shows 4 cols', (await overlayState()).cols === 4, await overlayState());
 const phoneEdges = await page.evaluate(() => {
@@ -113,7 +142,8 @@ await page.evaluate(() => localStorage.clear());
 // Every text block's last glyph baseline sits on a grid line (scene-relative)
 for (const [w, h] of [[390, 844], [1440, 900], [1440, 800], [1920, 1080]]) {
   await page.setViewport({ width: w, height: h });
-  await page.goto(PAGE); await wait(300);
+  await goto(STORY);
+  await page.evaluate(() => document.fonts.ready); await wait(200);
   const worst = await page.evaluate(() => {
     const B = parseFloat(getComputedStyle(document.body).lineHeight);
     let worst = { err: 0 };
@@ -133,12 +163,45 @@ for (const [w, h] of [[390, 844], [1440, 900], [1440, 800], [1920, 1080]]) {
   check(`${w}x${h}: glyph baselines on grid (<0.5px)`, worst.err < 0.5, worst);
 }
 
+// ============ Fixed stage (demo-proposal) ============
+for (const [w, h] of [[1440, 900], [390, 844], [1920, 1080]]) {
+  await page.setViewport({ width: w, height: h });
+  await goto(PROPOSAL + '#/phases');
+  const f = await page.evaluate(() => {
+    const root = document.documentElement;
+    const c = document.querySelector('#phases .scene__canvas').getBoundingClientRect();
+    const chrome = document.querySelector('.chrome--top').getBoundingClientRect();
+    return {
+      stage: root.dataset.stage,
+      scale: +getComputedStyle(root).getPropertyValue('--stage-scale'),
+      ratio: +(c.width / c.height).toFixed(3),
+      inside: c.left >= 0 && c.right <= innerWidth + 1 && c.top >= chrome.bottom - 1 && c.bottom <= innerHeight + 1,
+      centred: Math.abs((c.left + c.right) / 2 - innerWidth / 2) <= 1,
+      cols: document.querySelector('#phases .slot-left').getBoundingClientRect().right <= document.querySelector('#phases .slot-right').getBoundingClientRect().left,
+      hash: location.hash,
+    };
+  });
+  check(`${w}x${h}: fixed canvas scaled, 16:9, inside viewport, centred`, f.stage === 'fixed' && f.scale > 0 && Math.abs(f.ratio - 16 / 9) < 0.01 && f.inside && f.centred && f.cols && f.hash === '#/phases', f);
+}
+await page.setViewport({ width: 1440, height: 900 });
+await goto(PROPOSAL);
+await page.keyboard.press('ArrowDown'); await wait(900);
+check('fixed: arrow advances', (await state()).hash === '#/approach', await state());
+
+check('no page errors', errors.length === 0, errors);
 console.log(results.join('\n'));
+const failed = results.filter(r => r.startsWith('FAIL')).length;
+console.log(`\n${results.length - failed}/${results.length} passed`);
 
 // Screenshots
-for (const [name, w, h, m] of [['phone', 390, 844, 3], ['laptop', 1440, 900, 1], ['tv', 1920, 1080, 1]]) {
-  await page.setViewport({ width: w, height: h, deviceScaleFactor: m > 1 ? 2 : 1, isMobile: m > 1 });
-  await page.goto(PAGE); await wait(400);
-  await page.screenshot({ path: `${OUT}/${name}-full.png`, fullPage: true });
+if (OUT) {
+  for (const [name, w, h, m] of [['phone', 390, 844, 3], ['laptop', 1440, 900, 1], ['tv', 1920, 1080, 1]]) {
+    await page.setViewport({ width: w, height: h, deviceScaleFactor: m > 1 ? 2 : 1, isMobile: m > 1 });
+    await goto(STORY);
+    await page.screenshot({ path: `${OUT}/${name}-full.png`, fullPage: true });
+    await goto(PROPOSAL);
+    await page.screenshot({ path: `${OUT}/${name}-proposal.png` });
+  }
 }
 await browser.close();
+process.exit(failed ? 1 : 0);

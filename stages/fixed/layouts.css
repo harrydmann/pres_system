@@ -1,0 +1,38 @@
+/* =========================================================
+   Fixed stage — layouts
+   STUB. Layout names should mirror the PowerPoint template's layout
+   names so the exporter's mapping is 1:1. Positions are locked; there
+   are no breakpoints. Each layout is a fixed grid inside the safe area.
+
+   Contract for the exporter: layout name → template layout;
+   slot name → placeholder index on that layout.
+   ========================================================= */
+
+/* ---------- title-slide ----------  (PPT: "Title Slide") */
+.scene[data-layout="title-slide"] .scene__canvas {
+  align-content: center;
+}
+.scene[data-layout="title-slide"] .slot-heading :is(h1, h2) { font-size: var(--step-3); }
+.scene[data-layout="title-slide"] .slot-body { font-size: var(--step-1); color: var(--muted); }
+
+/* ---------- section-header ----------  (PPT: "Section Header") */
+.scene[data-layout="section-header"] .scene__canvas { align-content: end; }
+.scene[data-layout="section-header"] .slot-heading :is(h1, h2) { font-size: var(--step-3); }
+
+/* ---------- title-content ----------  (PPT: "Title and Content") */
+.scene[data-layout="title-content"] .scene__canvas {
+  grid-template-rows: auto 1fr;
+}
+
+/* ---------- two-content ----------  (PPT: "Two Content") */
+.scene[data-layout="two-content"] .scene__canvas {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  column-gap: var(--space-l);
+}
+.scene[data-layout="two-content"] .slot-heading { grid-column: 1 / -1; }
+.scene[data-layout="two-content"] .slot-left  { grid-column: 1; }
+.scene[data-layout="two-content"] .slot-right { grid-column: 2; }
+
+/* ---------- title-only ----------  (PPT: "Title Only") */
+.scene[data-layout="title-only"] .scene__canvas { grid-template-rows: auto 1fr; }

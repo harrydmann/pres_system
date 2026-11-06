@@ -1,0 +1,59 @@
+/* =========================================================
+   Fixed stage — tokens
+   STUB. Every value marked TEMPLATE is a placeholder to be replaced
+   with measurements from the real PowerPoint slide master.
+
+   Unit mapping: PowerPoint works in points; CSS px at 96dpi means
+   1pt = 1.3333px. A 16:9 PowerPoint slide (13.333in × 7.5in) is
+   960×540pt = 1280×720px. Declaring the canvas in px and type in pt
+   lets you copy numbers straight from the template.
+
+   brand.css still supplies fonts and the page colours; the canvas
+   re-scopes colours to the --canvas-* tokens below.
+   ========================================================= */
+:root {
+  /* Canvas — TEMPLATE: check Design → Slide Size in the .potx */
+  --stage-width: 1280;    /* px, unitless so the engine can read it */
+  --stage-height: 720;
+  --stage-scale: 1;       /* set by the engine on resize */
+
+  /* Safe area — TEMPLATE: position of the content placeholder on
+     "Title and Content", converted to pt */
+  --margin-top: 90pt;
+  --margin-right: 36pt;
+  --margin-bottom: 48pt;
+  --margin-left: 36pt;
+
+  /* Type — TEMPLATE: sizes from the slide master's text styles, in points */
+  --step--1: 10pt;   /* caption / footer */
+  --step-0:  14pt;   /* body */
+  --step-1:  18pt;   /* subheading */
+  --step-2:  28pt;   /* slide title */
+  --step-3:  40pt;   /* title slide / section header */
+
+  /* Space inside the canvas — fixed, in points */
+  --space-xs: 4pt;
+  --space-s:  8pt;
+  --space-m:  16pt;
+  --space-l:  28pt;
+  --space-xl: 48pt;
+
+  /* Chrome units (the chrome is outside the canvas and not exported) */
+  --baseline: 1.5rem;   /* button size, brand-mark size */
+  --chrome-h: 3rem;
+  --gutter: 1.25rem;
+  --radius: 2px;
+
+  /* Page (letterbox + chrome): dark, so the white canvas reads as a slide */
+  --bg: #1c1c1c;
+  --fg: #f0f0f0;
+  --muted: #9a9a9a;
+  --rule: #3a3a3a;
+
+  /* Canvas — TEMPLATE: theme colours */
+  --canvas: #ffffff;
+  --canvas-fg: #000000;
+  --canvas-muted: #595959;
+  --canvas-rule: #d9d9d9;
+  --placeholder: #f2f2f2;
+}

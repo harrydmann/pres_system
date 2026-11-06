@@ -1,0 +1,134 @@
+/* =========================================================
+   Fluid stage — the type rule, scene sizing, grid, slot styling
+   ========================================================= */
+
+/* The type rule. Each style sets --lines and --leading (inherited, so
+   children of a heading match it); defaults are body: 1 line at 1.5. */
+:where(body, body *) {
+  line-height: calc(var(--lines, 1) * var(--baseline));
+  font-size: calc(var(--lines, 1) * var(--baseline) / var(--leading, 1.5));
+}
+
+/* Glyphs on the grid. A line box being on the grid doesn't put the glyph
+   baseline on it — where the baseline sits inside the box depends on the
+   font. text-box trims each text block to [cap height … last baseline], then
+   padding rounds the first line's cap height up to a whole baseline. Result:
+   every block is whole baselines tall and its bottom edge IS a baseline, so
+   every baseline sits on a grid line. No font metrics needed.
+   Without support (Firefox, for now) line boxes are still on the grid. */
+@supports (text-box: trim-both cap alphabetic) {
+  :is(.slot-eyebrow, .slot-heading, .slot-body, .slot-caption, .slot-list > li, figcaption) {
+    text-box: trim-both cap alphabetic;
+    padding-top: calc(round(up, 1cap, var(--baseline)) - 1cap);
+  }
+}
+
+/* Inline code and keys use other fonts whose ascent/descent would grow the
+   line box and push the next baseline off the grid; a zero line-height
+   keeps them from contributing to line height at all. */
+code, kbd { line-height: 0; }
+
+/* Small text: captions, eyebrows, chrome. One line at loose leading. */
+.slot-eyebrow, .slot-caption, figcaption, .chrome--top, .media-placeholder { --leading: 1.8; }
+
+/* Grid overlay: hide columns 5–12 on the narrow grid */
+.grid-overlay > span:nth-child(n + 5) { display: none; }
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  .grid-overlay > span:nth-child(n + 5) { display: block; }
+}
+
+/* ---------- Deck + scenes ---------- */
+/* The root is the scroll container. Using the root keeps native mobile
+   behaviour (address bar collapse, overscroll) intact. */
+html { scroll-snap-type: y mandatory; }
+
+.scene {
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  /* Both paddings are whole baselines, so top-aligned content starts on
+     the grid: top = chrome (2) + 2 lines clear (+ --centre, below);
+     bottom = space-l (3). */
+  padding-top: calc(var(--chrome-h) + var(--baseline) * 2 + var(--centre, 0px));
+  padding-bottom: var(--space-l);
+  display: grid;
+  grid-template-columns: var(--grid);
+  column-gap: var(--col-gap);
+  row-gap: var(--space-s);
+  align-content: center;
+}
+/* With JS, centring is done in whole baselines instead (the engine sets
+   --centre); CSS centring would offset content by an arbitrary amount. */
+.js-centre .scene { align-content: start; }
+
+/* The engine wraps slots in .scene__canvas (the fixed stage scales it).
+   Here the scene itself is the grid, so the wrapper has no box. */
+.scene__canvas { display: contents; }
+
+/* By default every slot spans the content area; layouts narrow it. */
+.scene__canvas > * { grid-column: content; }
+
+/* A scene taller than the viewport. It keeps its snap point: under
+   `mandatory`, a scene with no snap point gets skipped entirely, whereas
+   a snap area taller than the viewport is scrolled through freely. It drops
+   `snap-stop: always` so a fling can carry on into the next scene. */
+.scene[data-tall] {
+  min-height: auto;
+  scroll-snap-stop: normal;
+  align-content: start;
+}
+
+/* ---------- Slots (shared vocabulary) ---------- */
+.slot-eyebrow {
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.slot-heading {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display);
+  --lines: 2; --leading: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.slot-body {
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+.slot-caption {
+  color: var(--muted);
+}
+.slot-list {
+  padding-left: 1.2em;
+  display: grid; gap: var(--space-s);
+  max-width: var(--measure);
+}
+/* Text group (a scene with media): its blocks stack one baseline apart */
+.slot-text { display: grid; gap: var(--space-s); align-content: start; }
+
+/* Media: declares aspect ratio (--ratio) and focal point (--focus);
+   the layout decides the footprint and crops around the focus. */
+.media {
+  width: 100%;
+  aspect-ratio: var(--ratio, auto);
+  object-fit: cover;
+  object-position: var(--focus, 50% 50%);
+  border-radius: 0.5rem;
+}
+
+/* Media placeholder: declares an aspect ratio, layout decides footprint */
+.media-placeholder {
+  aspect-ratio: var(--ratio, 16 / 9);
+  width: 100%;
+  background: var(--placeholder);
+  border-radius: 0.5rem;
+  display: grid; place-items: center;
+  color: var(--muted);
+}
+/* Inside a figure, media height rounds down to whole baselines (cropping
+   a few px via object-fit) so the caption and anything below stay on-grid. */
+figure.slot-media { container-type: inline-size; }
+figure.slot-media > :is(.media, .media-placeholder) {
+  aspect-ratio: auto;
+  height: round(down, calc(100cqi / (var(--ratio, 16 / 9))), var(--baseline));
+}
+figcaption { color: var(--muted); }

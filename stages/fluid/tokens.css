@@ -1,0 +1,51 @@
+/* =========================================================
+   Fluid stage — tokens
+   One baseline grid that all type is derived from, one column grid.
+   Colours and fonts come from brand.css.
+   ========================================================= */
+:root {
+  /* Baseline grid. The baseline is the one fluid unit; everything
+     vertical — type included — is derived from it.
+     --fluid is 0 at 360px and 1rem at 1920px, so a token reads
+     clamp(MIN, MIN + (MAX − MIN) × fluid, MAX) — both ends visible. */
+  --fluid: calc((100vw - 22.5rem) / 97.5);
+  --baseline: clamp(1.5rem, 1.5rem + 0.75 * var(--fluid), 2.25rem);   /* 24 → 36px */
+
+  /* Type is specified as (lines, leading), not as a size:
+       line-height = lines × baseline        → always on the grid
+       font-size   = line-height ÷ leading   → derived
+     See stage.css for the rule, layouts.css for each style's values. */
+
+  /* Vertical space: whole baselines only, so blocks stay on the grid. */
+  --space-s:  var(--baseline);
+  --space-m:  calc(var(--baseline) * 2);
+  --space-l:  calc(var(--baseline) * 3);
+  --space-xl: calc(var(--baseline) * 5);
+
+  /* Column grid. Defined once here and used by every scene and the
+     overlay. Named lines: `full` is edge to edge, `content` is inside the
+     gutters, `col N` is the start of column N. */
+  --cols: 4;
+  --col-gap: var(--baseline);                                          /* 24 → 36px: horizontal gap = one line */
+  --gutter: clamp(1.5rem, 1.5rem + 4.5 * var(--fluid), 6rem);          /* 24 → 96px: = col-gap on phones */
+  --edge: max(0px, calc(var(--gutter) - var(--col-gap)));
+  --grid:
+    [full-start] var(--edge)
+    [content-start] repeat(var(--cols), [col] minmax(0, 1fr))
+    [content-end] var(--edge) [full-end];
+
+  /* Max comfortable line length for body copy */
+  --measure: 36em;
+
+  --chrome-h: calc(var(--baseline) * 2);
+  --radius: 2px;
+
+  /* Tells the engine to centre scenes in whole baselines */
+  --baseline-centring: on;
+}
+
+/* The one "wide" breakpoint: spreads appear, grid goes to 12 columns.
+   Repeated verbatim wherever needed (no custom media without a build). */
+@media (min-width: 48rem) and (orientation: landscape), (min-width: 64rem) {
+  :root { --cols: 12; }
+}

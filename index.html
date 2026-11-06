@@ -3,19 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Web deck — Phase 1 scaffold</title>
+  <title>Deck</title>
   <!-- Brand: font (pairs with brand.css) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap">
   <link rel="stylesheet" href="brand.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="engine/chrome.css">
+  <!-- The engine appends stages/<stage>/{tokens,stage,layouts}.css from the deck's `stage:` -->
 </head>
 <body>
 
   <!-- Fixed chrome: lives outside the scroll container -->
   <header class="chrome chrome--top">
-    <span class="chrome__title" data-deck-title>Web deck</span>
+    <span class="chrome__title" data-deck-title></span>
     <span class="chrome__section" data-current-section></span>
     <!-- Icons: Lucide (ISC), inlined. Stroke inherits currentColor. -->
     <button class="chrome__button" data-grid-toggle type="button" aria-pressed="false" aria-label="Grid overlay" title="Grid overlay (G)">
@@ -36,79 +37,10 @@
     <picture class="brand-mark"><img src="media/brand-mark.svg" alt=""></picture>
   </div>
 
-  <!-- The deck: one scrolling column of scenes -->
-  <main class="deck" data-deck>
+  <!-- The deck: scenes are rendered here from decks/<name>/deck.md.
+       Pick a deck with ?deck=<name>; data-deck is the default. -->
+  <main class="deck" data-deck="demo-story"></main>
 
-    <section class="scene" data-layout="title" data-section="Intro" id="start">
-      <div class="slot-eyebrow">A working scaffold</div>
-      <h1 class="slot-heading">A presentation that is also a web page</h1>
-      <p class="slot-body">Scroll, swipe, or use the arrow keys. Every scene is a responsive layout — a spread on a wide screen, a well-set page on a phone.</p>
-    </section>
-
-    <section class="scene" data-layout="statement" data-section="Why" id="why">
-      <p class="slot-heading">One idea per scene. The whitespace is doing the work.</p>
-    </section>
-
-    <section class="scene" data-layout="text-media" data-section="How it works" id="scenes">
-      <div class="slot-text">
-        <div class="slot-eyebrow">Scenes</div>
-        <h2 class="slot-heading">The unit is a scene, not a slide</h2>
-        <p class="slot-body">A scene fills the viewport and snaps into place. Inside it, a layout decides how text and media are arranged at each size — the author only chooses the layout and fills the slots.</p>
-      </div>
-      <figure class="slot-media">
-        <div class="media-placeholder" style="--ratio: 4 / 3">4 : 3 media</div>
-        <figcaption>Media declares an aspect ratio; the layout decides the footprint.</figcaption>
-      </figure>
-    </section>
-
-    <section class="scene" data-layout="text-media" data-flip data-section="How it works" id="chrome">
-      <div class="slot-text">
-        <div class="slot-eyebrow">Chrome</div>
-        <h2 class="slot-heading">Fixed elements live outside the scroll</h2>
-        <p class="slot-body">The top strip shows the deck title and current section. The bottom edge is a progress bar. Both are the same on every scene and never move.</p>
-      </div>
-      <figure class="slot-media">
-        <div class="media-placeholder" style="--ratio: 1">1 : 1 media</div>
-      </figure>
-    </section>
-
-    <section class="scene" data-layout="media-full" data-section="How it works" id="full">
-      <img class="slot-media media" src="media/focal-demo.svg" alt="" style="--focus: 75% 35%">
-      <p class="slot-caption">Full-bleed media declares a focal point, so a phone in portrait crops around the subject instead of the centre.</p>
-    </section>
-
-    <section class="scene" data-layout="sequence" data-tall data-section="How it works" id="tall">
-      <h2 class="slot-heading">A tall scene scrolls freely, then snaps on</h2>
-      <ol class="slot-list">
-        <li>Content taller than the viewport is allowed, but it is an escape hatch, not the norm.</li>
-        <li>The scene keeps its snap point at the top, so scrolling in from above still lands cleanly.</li>
-        <li>Inside it, scrolling is free. The browser will not snap mid-scene because the snap area is taller than the viewport.</li>
-        <li>Below it, the next scene snaps as normal.</li>
-        <li>Filler to make this tall on a laptop. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</li>
-        <li>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</li>
-        <li>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</li>
-        <li>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</li>
-        <li>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</li>
-        <li>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</li>
-      </ol>
-    </section>
-
-    <section class="scene" data-layout="sequence" data-section="Next" id="next">
-      <h2 class="slot-heading">What Phase 2 adds</h2>
-      <ol class="slot-list">
-        <li>Steps inside a scene — progressive reveal, driven by scroll or keyboard.</li>
-        <li>Transitions between scenes.</li>
-        <li>Then Markdown authoring, one file per scene.</li>
-      </ol>
-    </section>
-
-    <section class="scene" data-layout="end" data-section="End" id="end">
-      <p class="slot-heading">Thanks.</p>
-      <p class="slot-body">Press <kbd>Home</kbd> to go back to the start.</p>
-    </section>
-
-  </main>
-
-  <script src="app.js"></script>
+  <script src="engine/app.js"></script>
 </body>
 </html>

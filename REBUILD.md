@@ -1,29 +1,102 @@
 # Web deck: rebuild notes
 
 A compact spec, distilled from the exploration in this repo. Hand this file to the
-implementer; it should be enough to build Phase 1 in one pass without re-exploring.
-The reference implementation is `index.html`, `brand.css`, `styles.css` and `app.js` (about 400 lines total, no build step).
+implementer; it should be enough to build the system in one pass without re-exploring.
+The reference implementation is `index.html`, `brand.css`, `engine/`, `stages/` and `decks/` (no build step).
 
 ## What it is
 
-A scroll-snapped web document (phone → TV) with a presenting mode layered on top.
-The document is primary and presenting is a mode. It is not a scaled fixed-stage canvas.
+One engine, two stages:
+
+| | Fluid stage (`stage: fluid`) | Fixed stage (`stage: fixed`) |
+|---|---|---|
+| Purpose | Storytelling decks; scroll-snapped web document, phone → TV, with a presenting mode on top | Proposals aligned to a PowerPoint template; exportable to `.pptx` |
+| Scene | Fills the viewport (`100dvh`) | A 1280×720 canvas, scaled as one object to fit the viewport, letterboxed |
+| Type | Derived from one fluid baseline (see Type) | Points, copied from the slide master |
+| Composition | Art-directed per breakpoint on a shared column grid | Locked; mirrors the template's placeholders |
+| Phone | First-class | A small picture — accepted |
+| Export | None | `python-pptx` filling real placeholders in the `.potx` (editable, inherits template styling) |
+
+Content is per deck. Reuse across stages is a human copy-and-reshape (same layout-plus-slots shape);
+there is no cross-stage rendering and the two layout vocabularies are independent.
+**Status:** the fluid stage is finished to Phase 1 and verified. The fixed stage is a working stub:
+mechanism done, every TEMPLATE-marked value still to be measured from the real `.potx`.
 
 ## Structure
 
+```
+index.html            chrome markup; loads brand.css + engine/chrome.css; <main data-deck="demo-story">
+brand.css             colours, fonts, display weight (swap to rebrand); logo in media/
+engine/app.js         loader + renderer, state, keys, hash, presenting, grid overlay, stage hooks
+engine/chrome.css     base + chrome; size-agnostic
+stages/fluid/         tokens.css  stage.css  layouts.css
+stages/fixed/         tokens.css  stage.css  layouts.css  export/export_pptx.py
+decks/<name>/deck.md  one file per deck (+ its media); pick with ?deck=<name>
+serve.mjs             static server (decks load over fetch, so file:// no longer works)
+tests.mjs             headless-Chrome tests, both stages
+```
+
+The engine reads `stage:` from the deck's frontmatter and appends that stage's three stylesheets
+after `chrome.css`. Rendered DOM:
+
 ```html
-<header class="chrome chrome--top">title · [data-current-section] · [data-present-toggle]</header>
-<div class="chrome chrome--bottom"><div class="progress"><div data-progress></div></div></div>
 <main class="deck">
-  <section class="scene" id="why" data-layout="statement" data-section="Why">…slots…</section>
+  <section class="scene" id="why" data-layout="statement" data-section="Why" [data-tall] [data-flip]>
+    <div class="scene__canvas">…slots…</div>
+  </section>
 </main>
 ```
 
+- `.scene__canvas` exists so the fixed stage has a box to scale. The fluid stage gives it `display: contents`,
+  so the scene itself stays the grid; its selectors are `.scene__canvas > *` rather than `.scene > *`.
+- Slots render as flat elements carrying `slot slot-<name>`: `h1/h2.slot-heading`, `p.slot-eyebrow`, `p.slot-body`
+  (one per paragraph), `ol|ul.slot-list`, `figure.slot-media`, `p.slot-caption`. When a scene has media, the text
+  slots (eyebrow, heading, body, list) are grouped in a `div.slot-text` so a layout can place them as one unit.
 - Chrome is `position: fixed`, outside the scroll container, `pointer-events: none` except on its children.
 - **The root (`html`) is the scroll container**, not a wrapper div. That keeps mobile address-bar collapse and overscroll native.
-- Slot classes are shared across layouts: `slot-eyebrow`, `slot-heading`, `slot-body`, `slot-caption`, `slot-list`, `slot-text`, `slot-media`.
 
-## Settled decisions and why
+## Authoring: `decks/<name>/deck.md`
+
+```
+---
+title: My deck
+stage: fluid                 # or fixed
+---
+
+===
+layout: text-media           # from the chosen stage's vocabulary
+section: Part one            # shown in the chrome
+id: intro                    # URL hash; defaults to scene-N
+flip: true                   # layout flag → data-flip
+tall: true                   # taller than the viewport → data-tall
+===
+:: eyebrow
+Small label
+:: heading
+The heading
+:: body
+Paragraphs, blank line between. **bold** *em* `code` [[Key]]
+:: list
+1. numbered, or - bulleted; renders as the list element itself
+:: media
+![Caption](image.png){ratio=4/3 focus="75% 35%"}
+[placeholder 4/3 Label]
+Optional caption line under a placeholder
+:: caption
+```
+
+- Scene header and frontmatter are plain `key: value` lines (no YAML parser). Scenes are separated by `===` lines.
+- A scene with no `::` markers: `# line` is the heading, the rest is body.
+- Media paths resolve against the deck folder; `media/…` resolves against the repo root (shared assets).
+- `{ratio=… focus=…}` become `--ratio` / `--focus` on the `<img class="media">`.
+- The parser is ~60 lines and mirrored in `stages/fixed/export/export_pptx.py`; keep them in step.
+
+Fluid layouts and slots: `title` (eyebrow, heading, body) · `statement` (heading) · `text-media` [+flip] (eyebrow, heading, body, media) ·
+`media-full` (media, caption) · `sequence` (heading, list) · `end` (heading, body).
+Fixed layouts (stub; rename to match the template): `title-slide` (heading, body) · `section-header` (eyebrow, heading) ·
+`title-content` (heading, body|list) · `two-content` (heading, left, right) · `title-only` (heading).
+
+## Settled decisions and why (engine + fluid stage)
 
 | Decision | Why / what was tried |
 |---|---|
@@ -39,8 +112,11 @@ The document is primary and presenting is a mode. It is not a scaled fixed-stage
 | One fluid unit (`--baseline`); type and vertical space derive from it (see Type) + `--gutter` + `--measure: 36em` | See the open question on TV below. |
 | Presenting mode = body class + Fullscreen API + idle-cursor timer (2.5s); title and section stay visible, only the buttons fade with the idle cursor (back on mouse move, hover or focus) | Exit via Esc, `f`, button, or leaving fullscreen (listen to `fullscreenchange`). |
 | Chrome buttons are icons: Lucide SVGs pasted inline (ISC, no package), `stroke: currentColor` set in CSS | Icon-only, so each button needs `aria-label` + `title` (shortcut in the title). Two-state buttons carry both icons and `aria-pressed` picks one in CSS; JS only flips the attribute. Icons: `grid-3x3`, `presentation` / `x`. Button = square, 1 baseline across, `--radius: 2px`; icon 66% with `stroke-width:1` + `vector-effect: non-scaling-stroke` on the shapes (not inherited — putting it on `<svg>` does nothing) so the line is 1px at any size. Phone button is 24px: meets WCAG 2.2 AA target size, below the 44px comfort size. |
+| **Content is data** (`deck.md`), rendered by the engine; the stage is chosen per deck | Needed for the fixed stage's exporter, and makes steps (Phase 2) a renderer concern. Cost: a static server. |
+| **Stage hooks are opt-in via tokens**: `--baseline-centring: on` enables baseline centring; `--stage-width/--stage-height` enable fit-to-viewport scaling | The engine stays stage-agnostic without a per-stage JS file. |
+| `code, kbd { line-height: 0 }` in the fluid stage | Inline spans in other fonts grew the line box by ~1px and pushed the next baseline off the grid (caught by the baseline test). |
 
-## Type: derived from the baseline, so every glyph sits on the grid
+## Type: derived from the baseline, so every glyph sits on the grid (fluid stage)
 
 **The model:** the baseline is the only fluid unit. A text style is a pair of numbers, **lines** (baselines per line of text) and **leading**,
 and its font size is derived from them. Line height is always a whole number of baselines, so text can't fall off the grid.
@@ -78,13 +154,14 @@ Each text block ends up a whole number of baselines tall, and its bottom edge is
 line boxes are still on the grid and only the glyph phase is lost.
 
 **Everything around the text is whole baselines too:**
-- Space tokens: s = 1, m = 2, l = 3, xl = 5 baselines. Scene row-gap = 1. List gap = 1.
+- Space tokens: s = 1, m = 2, l = 3, xl = 5 baselines. Scene row-gap = 1. List gap = 1. `.slot-text` gap = 1.
 - Scene padding: top = chrome 2 + 2 clear (+ centring), bottom = 3.
 - **Media in a figure:** `container-type: inline-size` on the figure, then
   `height: round(down, calc(100cqi / (var(--ratio))), var(--baseline))`. It crops a few px via `object-fit`.
 - **Spreads align to the top** (`align-items: start`). Centring two whole-baseline blocks against each other can leave a half-line offset.
-- **Vertical centring in JS** (about 15 lines): add `.js-centre` to `html`, which makes CSS `align-content: start`. Each scene then gets
-  `--centre = floor((innerHeight − 7b − contentHeight) / 2 / b) · b`, added to its top padding. Run it on load, on resize and on `document.fonts.ready`.
+- **Vertical centring in JS** (engine, enabled by `--baseline-centring: on`): add `.js-centre` to `html`, which makes CSS `align-content: start`.
+  Each scene then gets `--centre = floor((innerHeight − paddings − contentHeight) / 2 / b) · b`, added to its top padding; the paddings are
+  read from computed style with `--centre` at 0. Run it on load, on resize and on `document.fonts.ready`.
   Read the baseline in px from `getComputedStyle(body).lineHeight`. Tall and media-full scenes are skipped.
 
 **Measured:** every block's last glyph baseline is within 0.19px of a grid line, on every scene, at 390×844, 1440×900, 1440×800 and 1920×1080.
@@ -102,7 +179,7 @@ The method: append a zero-size inline-block with `vertical-align: baseline` to e
   but heading lines fell between grid lines. With half-baseline the leading was too coarse (1.1 → 1.34). Rounding up also needed a −0.5px float fudge.
 - ✗ CSS `align-content: center`: offset = free space ÷ 2, which lands anywhere. Measured 17.31 baselines on one scene.
 
-## Grid and rhythm
+## Grid and rhythm (fluid stage)
 
 **Columns: defined once, as a token on `:root`**, used by every `.scene` and by the overlay:
 
@@ -113,7 +190,7 @@ The method: append a zero-size inline-block with `vertical-align: baseline` to e
         repeat(var(--cols), [col] minmax(0, 1fr))
         [content-end] var(--edge) [full-end];
 .scene { grid-template-columns: var(--grid); column-gap: var(--col-gap); }
-.scene > * { grid-column: content; }        /* default; layouts narrow it */
+.scene__canvas > * { grid-column: content; }  /* default; layouts narrow it */
 ```
 
 - **Named lines on the edges only** (`full`, `content`), plus `col N` for column starts. Layouts read
@@ -131,18 +208,42 @@ The method: append a zero-size inline-block with `vertical-align: baseline` to e
   row whenever its column comes before the first one's (e.g. the flipped layout).
 - `order: -1` puts media above text on narrow screens without changing the source order.
 
-**Overlay** (grid icon button beside Present; key `G`; remembered in `localStorage`): a fixed `div`
-with the same `--grid` template, 12 `span`s (CSS hides spans 5–12 below the breakpoint), and baselines
-drawn with a `repeating-linear-gradient` of `--baseline`.
+**Overlay** (grid icon button beside Present; key `G`; remembered in `localStorage`; also `?grid`): a fixed `div`
+with the same `--grid` template, 12 `span`s (the fluid stage hides spans 5–12 below the breakpoint), and baselines
+drawn with a `repeating-linear-gradient` of `--baseline`. The engine also toggles `html.show-grid`, which the fixed
+stage uses to outline its safe area instead.
 - **Gotcha:** pin each span with `grid-column: col N`. Pinning only the first one lets auto-placement put
   the rest in the edge track, and the overlay ends up one column out.
 - Tests check that slot edges match overlay column edges to within 1px at 1440px and 390px.
+
+## Fixed stage (stub)
+
+- **Canvas = PowerPoint's own size.** A 16:9 slide is 13.333 × 7.5 in = 960 × 540 pt = **1280 × 720 px** at CSS's 96 dpi, so
+  1 pt = 1.333 px and a 24 pt heading in the template is `24pt` in CSS. Declared as unitless `--stage-width/--stage-height` so the
+  engine can read them; the engine sets `--stage-scale = min((vw − 16) / W, (vh − chrome − 3 − 16) / H)` on resize and the canvas
+  gets `transform: scale(var(--stage-scale))`.
+- **Gotcha:** the scene's grid tracks must be `minmax(0, 1fr)`. An `auto` track grows to the *unscaled* 1280 px, so a canvas larger than
+  a phone viewport is centred inside an overflowing track and ends up off-screen.
+- Scene padding reserves the chrome height so the canvas never sits under it.
+- **Colour re-scoping.** `brand.css` colours the page (dark letterbox + chrome); inside `.scene__canvas`, `--fg/--muted/--rule` are
+  redefined to `--canvas-*` tokens so slot CSS is shared with the chrome's vocabulary but reads template colours.
+- Type and space tokens use the same **names** as the fluid stage would (`--step-*`, `--space-*`) but values in points; the fluid stage
+  doesn't use `--step-*` at all (it derives type from the baseline), so the naming is for the exporter's benefit only.
+- Layout names mirror the template's layout names; slot names map to placeholder indices. That mapping is the exporter's whole job
+  (`LAYOUT_MAP` in `export_pptx.py`; `python export_pptx.py inspect template.potx` prints a template's layouts and placeholder idx).
+- Lists need `align-content: start` or a `1fr` row stretches the items apart.
+- Grid overlay and brand mark are hidden; the template supplies its own footer/logo (`.scene__canvas::after` placeholder).
+
+**To finish on the work machine:** (1) slide size, master text sizes and the content placeholder's position → `tokens.css`;
+(2) layout names + placeholder indices → `layouts.css` and `LAYOUT_MAP`; (3) decide native vs image for charts/tables and extend
+`fill_slot`; (4) self-host the template font and check it renders in the canvas.
 
 ## Brand tokens (Deloitte, first pass)
 
 All brand values live in **`brand.css`** (colours incl. dark mode, font stacks, display weight), plus two things it can't hold:
 the font `<link>` in `index.html` (a CSS `@import` would chain the request) and the logo file `media/brand-mark.svg`.
-`styles.css` is brand-free, so system changes port between repos without touching brand.
+`engine/` and `stages/` are brand-free, so system changes port between repos without touching brand.
+The fixed stage's page colours and `--canvas-*` live in its `tokens.css`; the work copy will replace them with theme colours.
 
 Unofficial: nothing authoritative is published, so verify these on the internal brand site.
 - **Open Sans** for everything. Headlines use Light (`--weight-display: 300`), as deloitte.com does. Fallbacks: Aptos, Helvetica, Arial.
@@ -161,35 +262,39 @@ Unofficial: nothing authoritative is published, so verify these on the internal 
 - `g` toggles the grid overlay.
 - ↓ → PgDn Space: `advance(+1)`; ↑ ← PgUp: `advance(-1)`; Home/End: `go(0|last)`; `f`: present; Esc: exit present.
 
-## Layouts (the six)
-
-`title` (display heading, max 14ch) · `statement` (one display line, max 18ch) ·
-`text-media` (stack media→text; spread 5fr/7fr; `data-flip` mirrors) ·
-`media-full` (no padding, single grid area stacking media + caption over a gradient) ·
-`sequence` (heading + `ol`; side by side at ≥64rem) · `end` (centred).
-
 ## Verification
 
-Use headless Chrome via `puppeteer-core` pointed at the system Chrome; no server is needed over `file://`.
-The test script from the exploration covers boot hash, arrows, Shift+Space, End with no chrome sweep, Home,
-Space on a focused button, deep link, free scroll inside a tall scene, snapping mid-scene,
-paging through a tall scene (laptop and phone), and numeric hash. Run it at 390×844, 1440×900 and 1920×1080.
+```
+npm i puppeteer-core@23
+node serve.mjs 3000 &
+node tests.mjs [screenshot-dir]        # CHROME=… to point at another binary; CHROME_ARGS=--no-sandbox in containers
+```
+
+Headless Chrome via `puppeteer-core` pointed at the system Chrome. A server is required now that decks load over `fetch`.
+The suite covers: boot hash, arrows, Shift+Space, End with no chrome sweep, Home, Space on a focused button, deep link, free scroll
+inside a tall scene, snapping mid-scene, paging through a tall scene (laptop and phone), numeric hash, Markdown → slot rendering
+(grouping, ratio/focus attributes, lists, kbd, flags), grid overlay (toggle, persistence, 12/4 columns, slot/column alignment),
+glyph baselines at four viewports, and for the fixed stage: scale, 16:9, inside the viewport, centred, two columns, keyboard.
+33 checks; run at 390×844, 1440×900 and 1920×1080.
+**Gotcha:** Puppeteer reloads the page when `isMobile` changes; wait for `.scene` again before the next key press, because rendering is async.
 Full-page screenshots draw fixed chrome only once, at the top; that's expected.
 
 ## Open questions (decide before or in Phase 2)
 
-- **TV scaling.** The scale is width-based and caps at 1920px, so a TV looks like a big laptop, and short landscape screens get no extra room.
+- **TV scaling (fluid).** The scale is width-based and caps at 1920px, so a TV looks like a big laptop, and short landscape screens get no extra room.
   Candidate: base `--fluid` on `min(100vw, 100vh·16/9)`. That's a one-line change now that every token shares `--fluid`.
 - **Steps (Phase 2).** Extend state to `(scene, step)` and the hash to `#/id/step`. `advance()` already exists as the
-  single entry point; it should consume steps before paging within or leaving a scene.
+  single entry point; it should consume steps before paging within or leaving a scene. With content as data, a step marker in
+  `deck.md` (e.g. `--` between step groups inside a slot) is the natural authoring form.
   When scrolling, does reaching a scene reveal all its steps, or are steps scroll-driven? Not decided.
 - **Safari.** Untested. Check `behavior:'instant'`, `100dvh` and snap with tall areas on iOS.
+- **Fixed-stage export of media and charts.** Picture placeholders are straightforward; native charts/tables are a separate piece of work.
 
 ## Syncing to the work repo
 
 This repo is public (MIT) and serves as the **reference implementation**. The work repo is a separate copy with real
-brand assets and content. **Port changes; never fork or merge** (forks of public repos must stay public, and the
-histories will diverge). Keep work-only things (official tokens, logo, deck content) out of this repo.
+brand assets, template tokens and content. **Port changes; never fork or merge** (forks of public repos must stay public, and the
+histories will diverge). Keep work-only things (official tokens, logo, the `.potx`, deck content) out of this repo.
 
 Record the last synced commit in the work repo, e.g. a line `synced-from: <sha>` in its notes file.
 
@@ -206,7 +311,8 @@ A tarball has no commit hash inside it, so always record the sha from the API at
 
 **Later updates:**
 > Fetch https://github.com/harrydmann/pres_system/compare/<synced-from>...main.patch. It contains every new commit's
-> message and diff. Port each change into our repo by hand (don't merge), skipping `brand.css` and `media/brand-mark.svg`.
+> message and diff. Port each change into our repo by hand (don't merge), skipping `brand.css`, `media/brand-mark.svg`
+> and the TEMPLATE values in `stages/fixed/tokens.css`.
 > Run our tests, then set `synced-from` to the latest sha from the commits API.
 
 (With git available, `git log`/`git diff <synced-from>..HEAD` on a clone gives the same thing.)

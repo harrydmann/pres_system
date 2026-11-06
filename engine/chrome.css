@@ -1,0 +1,120 @@
+/* =========================================================
+   Engine — base and chrome
+   Shared by every stage; nothing here knows how big a scene is.
+   A stage must define: --baseline (the chrome's unit), --chrome-h,
+   --gutter, --space-s, --radius, and the colours (normally brand.css):
+   --bg --fg --muted --rule --accent --placeholder --font-text.
+   ========================================================= */
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p, ol, ul, figure { margin: 0; }
+img, video, svg { display: block; max-width: 100%; }
+
+kbd {
+  font: inherit; font-size: 0.85em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--rule); border-radius: 0.3em;
+}
+
+/* ---------- Chrome ---------- */
+.chrome {
+  position: fixed; left: 0; right: 0; z-index: 10;
+  pointer-events: none;
+}
+.chrome > * { pointer-events: auto; }
+
+.chrome--top {
+  top: 0;
+  height: var(--chrome-h);
+  padding: 0 var(--gutter);
+  padding-top: env(safe-area-inset-top);
+  display: flex; align-items: center; gap: var(--space-s);
+  color: var(--muted);
+}
+.chrome__title { font-weight: 600; color: var(--fg); }
+.chrome__section { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chrome__section:empty { display: none; }
+/* Keep buttons right-aligned even when the section label is hidden */
+.chrome__button:first-of-type { margin-left: auto; }
+
+/* Icon buttons: a square 1 baseline across, centred in the 2-baseline chrome */
+.chrome__button {
+  display: grid; place-items: center;
+  width: var(--baseline); aspect-ratio: 1; padding: 0;
+  color: var(--muted);
+  background: none; border: 1px solid var(--rule); border-radius: var(--radius);
+  cursor: pointer;
+}
+.chrome__button:hover { color: var(--fg); border-color: var(--fg); }
+.chrome__button[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
+.icon {
+  width: 66%; height: 66%;
+  /* 1 device-independent px at any icon size */
+  fill: none; stroke: currentColor; stroke-width: 1;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.icon > * { vector-effect: non-scaling-stroke; } /* not inherited */
+/* Two-state buttons carry both icons; aria-pressed picks one */
+.chrome__button[aria-pressed="true"] .icon--off,
+.chrome__button:not([aria-pressed="true"]) .icon--on { display: none; }
+
+.chrome--bottom { bottom: 0; }
+/* Brand mark: 1 baseline square, 1 baseline up from the bottom edge, so it
+   sits inside the scene's 3-baseline bottom padding and on the grid. */
+.brand-mark {
+  position: absolute; right: var(--gutter); bottom: var(--baseline);
+  width: var(--baseline); height: var(--baseline);
+}
+.brand-mark img { display: block; width: 100%; height: 100%; }
+.progress { height: 3px; background: var(--rule); }
+.progress__bar {
+  height: 100%; width: 0%;
+  background: var(--accent);
+  transition: width 200ms ease-out;
+}
+
+/* Presenting mode: title and section stay. Buttons fade with the cursor
+   once the mouse is idle, and come back on movement, hover or focus. */
+.chrome__button { transition: opacity 300ms; }
+body.is-presenting.is-idle .chrome__button { opacity: 0; }
+body.is-presenting.is-idle .chrome--top:hover .chrome__button,
+body.is-presenting .chrome__button:focus-visible { opacity: 1; }
+body.is-presenting.is-idle { cursor: none; }
+
+/* ---------- Grid overlay (design aid) ----------
+   Uses the stage's --grid template, so the columns line up by construction.
+   Horizontal lines mark every baseline from the viewport top, which is also
+   every snapped scene's top. A stage without --grid hides it (fixed stage
+   draws its own safe-area outline on html.show-grid instead). */
+.grid-overlay {
+  position: fixed; inset: 0; z-index: 5;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: var(--grid, none);
+  column-gap: var(--col-gap, 0);
+  --grid-col: color-mix(in srgb, var(--accent) 9%, transparent);
+  --grid-line: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: repeating-linear-gradient(to bottom,
+    transparent 0 calc(var(--baseline) - 1px),
+    var(--grid-line) calc(var(--baseline) - 1px) var(--baseline));
+}
+.grid-overlay[hidden] { display: none; }
+.grid-overlay > span { grid-row: 1; background: var(--grid-col); }
+
+/* ---------- Loader error ---------- */
+.deck-error {
+  padding: 2rem; font-family: ui-monospace, monospace; white-space: pre-wrap;
+}
